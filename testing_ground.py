@@ -1,29 +1,70 @@
-from scipy.fft import fft, fftfreq
-import numpy as np
-# Number of sample points
-N = 600
-# sample spacing
-T = 1.0 / 800.0
-x = np.linspace(0.0, N*T, N, endpoint=False)
-y = np.sin(50.0 * 2.0*np.pi*x) + 0.5*np.sin(80.0 * 2.0*np.pi*x)
-yf = fft(y)[0:N//2]
-xf = fftfreq(N, T)[:N//2]
-#yf = fft(y)
-#xf = fftfreq(N, T)
+from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import QMainWindow, QApplication
+from cupy import cuda
+from pyqtgraph import PlotWidget, plot
+import pyqtgraph as pg
+import sys  # We need sys so that we can pass argv to QApplication
+import os
+import cupy as cp
+import cupyx as cpx
 
-print(f"length = {np.size(y)}")
-print(f"length = {np.size(x)}")
+import cuda
 
-print(x)
-print(f"length = {np.size(yf)}")
-#print(xf) # 300 points of values from ß to 400, stepsize 1.33
-print(f"length = {np.size(xf)}")
+Perform_magic = False
 
 
-import matplotlib.pyplot as plt
-#
-plt.plot(xf, 2.0/N * np.abs(yf))
-plt.grid()
-plt.show()
+def myfoo():
+    somevalue = cuda.cudaDriverGetVersion()
+    print(somevalue)
 
 
+
+class MainWindow(QMainWindow):
+
+    def __init__(self, *args, **kwargs):
+        super(MainWindow, self).__init__(*args, **kwargs)
+
+        self.graphWidget = pg.PlotWidget()
+        self.setCentralWidget(self.graphWidget)
+
+        hour = [1,2,3,4,5,6,7,8,9,10]
+        temperature = [30,32,34,32,33,31,29,32,35,45]
+
+        #Add Background colour to white
+        self.graphWidget.setBackground('w')
+        # Add Title
+        self.graphWidget.setTitle("Your Title Here", color="b", size="30pt")
+        # Add Axis Labels
+        styles = {"color": "#f00", "font-size": "20px"}
+        self.graphWidget.setLabel("left", "Temperature (°C)", **styles)
+        self.graphWidget.setLabel("bottom", "Hour (H)", **styles)
+        #Add legend
+        self.graphWidget.addLegend()
+        #Add grid
+        self.graphWidget.showGrid(x=True, y=True)
+        #Set Range
+        self.graphWidget.setXRange(0, 10, padding=0)
+        self.graphWidget.setYRange(20, 55, padding=0)
+
+        pen = pg.mkPen(color=(255, 0, 0))
+
+        self.graphWidget.plot(hour, temperature, name="Sensor 1",  pen=pen, symbol='+', symbolSize=30, symbolBrush=('b'))
+
+        # Set the cursor for the plotwidget. The mouse cursor will change when over the plot.
+        cursor = Qt.CrossCursor
+        self.graphWidget.setCursor(cursor)
+
+
+
+
+
+if __name__ == "__main__":
+    if(not Perform_magic):
+        pass
+    else:
+        app = QApplication(sys.argv)
+        main = MainWindow()
+        main.show()
+        app.exec_()
+
+    myfoo()
