@@ -15,11 +15,9 @@ from PyQt5.QtWidgets import QApplication
 import pycuda.autoinit
 import pycuda.driver as drv
 
-import cupy as cp # install pip cupy-cuda12x
-import cupyx as cpx
-# do not use  scipy.fft!
 
-import tensorflow as tf
+
+#import tensorflow as tf
 
 # program control global variables
 USE_CUDA = False
@@ -27,11 +25,19 @@ USE_PLOTGRAPH = True
 USE_DEBUGPRINT = True
 
 
+
+
 if(USE_DEBUGPRINT):
     print("Debug printing enabled")
     pass
+
 if USE_CUDA:
     print("Enable CUDA Support")
+    import cupy as cp  # install pip cupy-cuda12x
+    import cupyx as cpx
+    import cusignal as cus  # needs WSL2 (yes, not WSL1)
+
+    # do not use  scipy.fft!
     cp.cuda.runtime.driverGetVersion()
     pass
 
@@ -109,6 +115,11 @@ def calculate_fft(signal_length, sampling_frequency, signal, timelimit):
         plt.show()
 
         return
+
+
+
+
+
 
 def calculate_dwt():
 

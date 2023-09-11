@@ -8,7 +8,7 @@ import os
 import cupy as cp
 import cupyx as cpx
 
-import cuda
+
 
 Perform_magic = False
 
