@@ -1,70 +1,93 @@
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QMainWindow, QApplication
-from cupy import cuda
-from pyqtgraph import PlotWidget, plot
-import pyqtgraph as pg
-import sys  # We need sys so that we can pass argv to QApplication
-import os
-import cupy as cp
-import cupyx as cpx
+#!/usr/bin/env python
+import numpy as np
+import os.path
+
+
+from scipy.io.wavfile import read
+
+from scipy import signal
+import matplotlib.pyplot as plt
+
+rng = np.random.default_rng()
 
 
 
-Perform_magic = False
+# import tensorflow as tf
+
+# program control global variables
+USE_CUDA = False
+USE_PLOTGRAPH = True
+USE_DEBUGPRINT = True
+
+if (USE_DEBUGPRINT):
+    print("Debug printing enabled")
+    pass
 
 
-def myfoo():
-    somevalue = cuda.cudaDriverGetVersion()
-    print(somevalue)
+
+
+def normalizing(nsignal):
+    y_norm = nsignal / np.max(nsignal)
+    return y_norm
+
+
+def timecropping(signal_length, sampling_freq, full_signal, time_limit):
+    if signal_length < timelimit:
+        time_limit = signal_length
+    cropped_N = int(sampling_freq * timelimit)
+    print(f"cropping {time_limit} seconds and {cropped_N} samples")
+    cropped_signal = full_signal[0: cropped_N]
+    cropped_length = cropped_signal.shape[0] / sampling_freq
+    return cropped_length, cropped_N, cropped_signal
+
+
+def read_sourcefile(filename, croptime):
+    work_dir = "C:\\Users\\User\\Desktop\\Testbetrieb\\snippets"
+    base_filename = filename
+    file_type = ".wav"
+    target_file = base_filename + file_type
+    wavefile = os.path.join(work_dir, target_file)
+    samplingfrequency, full_signal = read(wavefile)
+
+    sig_length = full_signal.shape[0] / samplingfrequency
+    if (USE_DEBUGPRINT):
+        print(f"Opening file:{wavefile}")
+        print(f"sampling_frequency = {samplingfrequency}")
+        print(f"shape[0] = {full_signal.shape[0]}")
+        print(f"full signal length  = {sig_length} [s]")
+    cropped_length, cropped_N, cropped_signal = \
+        timecropping(sig_length, samplingfrequency, full_signal, croptime)
+    cropped_normalized_signal = normalizing(cropped_signal)
+
+    return samplingfrequency, cropped_normalized_signal
 
 
 
-class MainWindow(QMainWindow):
+def calculate_spectraldensity():
+    fs = 10e3
+    N = 1e5
+    amp = 2 * np.sqrt(2)
+    freq = 1234.0
+    noise_power = 0.001 * fs / 2
+    time_t = np.arange(N) / fs
+    x = amp * np.sin(2 * np.pi * freq * time_t)
+    x += rng.normal(scale=np.sqrt(noise_power), size=time_t.shape)
+    f, Pxx_den = signal.periodogram(x, fs)
 
-    def __init__(self, *args, **kwargs):
-        super(MainWindow, self).__init__(*args, **kwargs)
-
-        self.graphWidget = pg.PlotWidget()
-        self.setCentralWidget(self.graphWidget)
-
-        hour = [1,2,3,4,5,6,7,8,9,10]
-        temperature = [30,32,34,32,33,31,29,32,35,45]
-
-        #Add Background colour to white
-        self.graphWidget.setBackground('w')
-        # Add Title
-        self.graphWidget.setTitle("Your Title Here", color="b", size="30pt")
-        # Add Axis Labels
-        styles = {"color": "#f00", "font-size": "20px"}
-        self.graphWidget.setLabel("left", "Temperature (°C)", **styles)
-        self.graphWidget.setLabel("bottom", "Hour (H)", **styles)
-        #Add legend
-        self.graphWidget.addLegend()
-        #Add grid
-        self.graphWidget.showGrid(x=True, y=True)
-        #Set Range
-        self.graphWidget.setXRange(0, 10, padding=0)
-        self.graphWidget.setYRange(20, 55, padding=0)
-
-        pen = pg.mkPen(color=(255, 0, 0))
-
-        self.graphWidget.plot(hour, temperature, name="Sensor 1",  pen=pen, symbol='+', symbolSize=30, symbolBrush=('b'))
-
-        # Set the cursor for the plotwidget. The mouse cursor will change when over the plot.
-        cursor = Qt.CrossCursor
-        self.graphWidget.setCursor(cursor)
+    return f, Pxx_den
 
 
 
 
 
 if __name__ == "__main__":
-    if(not Perform_magic):
-        pass
-    else:
-        app = QApplication(sys.argv)
-        main = MainWindow()
-        main.show()
-        app.exec_()
+    timelimit = 50.0  # Limit is 400s due GPU low memory size
+    sampling_frequency, signal = read_sourcefile("ok2", timelimit)
+    #sampling_frequency2, signal2 = read_sourcefile("nok2", timelimit)
 
-    myfoo()
+    #time = np.linspace(0., signal.shape[0] / sampling_frequency, signal.shape[0])  # start, end, spacing
+    #time2 = np.linspace(0., signal2.shape[0] / sampling_frequency, signal2.shape[0])  # start, end, spacing
+
+
+    SD_ok1,ok = calculate_spectraldensity()
+    print(f"f, Pxx_den  = {SD_ok1},{ok} [s]")
