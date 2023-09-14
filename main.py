@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import numpy as np
 import os.path
+import os
 # import pywt
 from numba import jit
 
@@ -28,6 +29,7 @@ import pycuda.driver as drv
 USE_CUDA = True
 USE_PLOTGRAPH = True
 USE_DEBUGPRINT = True
+OS_TYPE = os.name
 
 if (USE_DEBUGPRINT):
     print("Debug printing enabled")
@@ -61,7 +63,13 @@ def timecropping(signal_length, sampling_freq, full_signal, time_limit):
 
 
 def read_sourcefile(filename, croptime=None):
-    work_dir = "C:\\Users\\User\\Desktop\\Testbetrieb\\snippets"
+    match OS_TYPE:
+        case "nt":
+            work_dir = "C:\\Users\\User\\Desktop\\Testbetrieb\\snippets"
+        case "posix":
+            work_dir = "//home//$USER//Desktop//Testbetrieb//snippets"
+        case _:
+            work_dir = "C:\\Users\\User\\Desktop\\Testbetrieb\\snippets"
     base_filename = filename
     file_type = ".wav"
     target_file = base_filename + file_type
@@ -176,11 +184,11 @@ if __name__ == "__main__":
     time = np.linspace(0., signal1.shape[0] / sampling_frequency1, signal1.shape[0])  # start, end, spacing
     time2 = np.linspace(0., signal2.shape[0] / sampling_frequency2, signal2.shape[0])  # start, end, spacing
 
-    #fft_ok1 = calculate_fft(sampling_frequency, signal)
-    #fft_nok1 = calculate_fft(sampling_frequency2, signal2)
+    # fft_ok1 = calculate_fft(sampling_frequency, signal)
+    # fft_nok1 = calculate_fft(sampling_frequency2, signal2)
 
-    SD_ok1,ok = calculate_spectraldensity(sampling_frequency1, signal1)
-    #SD_nok1 = calculate_spectraldensity(sampling_frequency2, signal2)
+    SD_ok1, ok = calculate_spectraldensity(sampling_frequency1, signal1)
+    # SD_nok1 = calculate_spectraldensity(sampling_frequency2, signal2)
 
     # calculate_autocorrelation(signal_length, sampling_frequency, signal, timelimit)
     # calculate_autocorrelation(signal_length2, sampling_frequency2, signal2, timelimit)
@@ -197,18 +205,18 @@ if __name__ == "__main__":
         # axs2.xlabel("Time [s]")
         # axs2.ylabel("Amplitude")
 
-        #axs3.plot(fft_ok1[0], np.abs(fft_ok1[1]), label="fft_signal1")
+        # axs3.plot(fft_ok1[0], np.abs(fft_ok1[1]), label="fft_signal1")
         # axs3.xlabel("Freq [Hz]")
         # axs3.ylabel("Amplitude")
 
-        #axs4.plot(fft_nok1[0], (fft_ok1[1]), label="fft_signal2")
+        # axs4.plot(fft_nok1[0], (fft_ok1[1]), label="fft_signal2")
         # axs4.xlabel("Freq [Hz]")
         # axs4.ylabel("Amplitude")
-        #axs1.semilogx()
-        #axs1.semilogy()
-        #axs1.set_ylim([1e-7, 1e2])
-        #axs1.plot(SD_ok1[0], (SD_ok1[1]), label="fft_signal2")
-        #axs2.plot(SD_nok1[0], (SD_nok1[1]), label="fft_signal2")
+        # axs1.semilogx()
+        # axs1.semilogy()
+        # axs1.set_ylim([1e-7, 1e2])
+        # axs1.plot(SD_ok1[0], (SD_ok1[1]), label="fft_signal2")
+        # axs2.plot(SD_nok1[0], (SD_nok1[1]), label="fft_signal2")
 
         plt.semilogy(SD_ok1, ok)
         plt.ylim([1e-7, 1e2])
