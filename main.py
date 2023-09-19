@@ -3,7 +3,7 @@ import numpy as np
 import os.path
 import os
 # import pywt
-from numba import jit
+#from numba import jit
 
 import timeit
 from statsmodels.tsa.stattools import acf, pacf
@@ -20,13 +20,12 @@ import pyqtgraph as pg
 from PyQt5 import QtGui, QtCore
 from PyQt5.QtWidgets import QApplication
 
-import pycuda.autoinit
-import pycuda.driver as drv
+
 
 # import tensorflow as tf
 
 # program control global variables
-USE_CUDA = True
+USE_CUDA = False
 USE_PLOTGRAPH = True
 USE_DEBUGPRINT = True
 OS_TYPE = os.name
@@ -37,6 +36,8 @@ if (USE_DEBUGPRINT):
 
 if USE_CUDA:
     print("Enable CUDA Support")
+    import pycuda.autoinit
+    import pycuda.driver as drv
     import cupy as cp  # install pip cupy-cuda12x
     import cupyx as cpx
 
@@ -67,7 +68,8 @@ def read_sourcefile(filename, croptime=None):
         case "nt":
             work_dir = "C:\\Users\\User\\Desktop\\Testbetrieb\\snippets"
         case "posix":
-            work_dir = "//home//$USER//Desktop//Testbetrieb//snippets"
+            myuser = os.environ.get('USER')
+            work_dir = "//home//"+myuser+"//Schreibtisch//Testbetrieb//snippets"
         case _:
             work_dir = "C:\\Users\\User\\Desktop\\Testbetrieb\\snippets"
     base_filename = filename
