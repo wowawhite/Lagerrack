@@ -1,10 +1,11 @@
-
+{
+"config": [
   {
     "executionType": "execute", 
     "dataInput": "/home/wowa/PycharmProjects/Lagerrack/dataset.csv",
     "dataOutput": "/home/wowa/PycharmProjects/Lagerrack/results/anomaly_scores.ts",
     "modelInput": "/home/wowa/PycharmProjects/Lagerrack/results/model.pkl",
     "modelOutput": "/home/wowa/PycharmProjects/Lagerrack/results/model.pkl",
-    "customParameters": {}
-  } 
-
+    "customParameters": {"random_state": 6905}
+  } ]
+}

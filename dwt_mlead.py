@@ -25,7 +25,7 @@ def pad_series(data: np.ndarray) -> np.ndarray:
 
 def multilevel_dwt(data: np.ndarray, wavelet: str = "haar", mode: str = "periodic", level_from: int = 0, level_to=None):
     if level_to is None:
-        level_to = int(np.log2(len(data)))
+        level_to = int(np.log2(len(data)))  # returns int of base of log2
     ls_ = []
     as_ = []
     ds_ = []
@@ -52,7 +52,7 @@ def reverse_windowing(data: np.ndarray, window_length: int, full_length: int,
 
 
 def combine_alternating(xs, ys):
-    for x, y in zip(xs, ys):
+    for x, y in zip(xs, ys):  # for key, value in ... zip return iterator of tuples
         yield x
         yield y
 
@@ -86,10 +86,11 @@ class DWT_MLEAD():
             level_to=self.max_level - 1,)
 
         coef_anomaly_counts = []
+
+        ## zip() returns an iterator of tuples with each tuple having elements from all the iterables
         for x, level in zip(combine_alternating(detail_coefs, approx_coefs), levels.repeat(2, axis=0)):
             window_size = self.window_sizes[level]
             x_view = sliding_window_view(x, window_size)
-
             p = self._estimate_gaussian_likelihoods(level, x_view)
             a = self._mark_anomalous_windows(p)
             xa = reverse_windowing(a, window_length=window_size, full_length=len(x), reduction=np.sum, fill_value=0)
@@ -110,9 +111,21 @@ class DWT_MLEAD():
         e_cov_est.fit(x_view)
 
         # compute log likelihood for each window x in x_view
-        p = np.empty(shape=len(x_view))
+        p = np.empty(shape=len(x_view))  # creating empty 1d array in shape of len(x_view)
+
         for i, window in enumerate(x_view):
-            p[i] = e_cov_est.score(window)
+            # window
+            extradimension = np.zeros(window.size)
+            window = np.vstack((window, extradimension))  # Transponsing window from row to column vector
+            print(type(window))
+            print(type(extradimension))
+            print(window.shape)
+            print(window)
+
+
+
+
+            p[i] = e_cov_est.score(window)          ## TODO: What is going on here? -> score estimator demands d2 but gets 1d
 
         print(f"Gaussion Distribution for level {level}:")
         print(f"Shapes: mean={e_cov_est.location_.shape}, covariance={e_cov_est.covariance_.shape}, p={p.shape}")

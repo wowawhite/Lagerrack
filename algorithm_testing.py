@@ -2,30 +2,40 @@
 import argparse
 import json
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 
 import numpy as np
 import pandas as pd
 
 from dwt_mlead import DWT_MLEAD
-
+# https://github.com/HPI-Information-Systems/TimeEval-algorithms
 
 @dataclass
 class CustomParameters:
     start_level: int = 3
     quantile_epsilon: float = 0.01
     random_state: int = 42
-    use_column_index: int = 0
+    use_column_index: int = 1
 
 
 class AlgorithmArgs(argparse.Namespace):
     @staticmethod
-    def from_sys_args() -> 'AlgorithmArgs':
-        args: dict = json.loads(sys.argv[1])
-        custom_parameter_keys = dir(CustomParameters())
+    def from_sys_args() -> 'AlgorithmArgs':  # grab config from json file
+        with open("startscript.json", "r") as jsonfile:
+            args: dict = json.load(jsonfile)
+            print("Read successful")
+        #args: dict = json.loads(sys.argv[1])  # takes arguments from CMD parameter. Input must be JSON string
+        custom_parameter_keys = vars(CustomParameters())  # dir function returns a list of attributes
+        #print(f"CustomParameters()={CustomParameters()}")
+        print(f"custom_parameter_keys={custom_parameter_keys}")
+
         filtered_parameters = dict(
             filter(lambda x: x[0] in custom_parameter_keys, args.get("customParameters", {}).items()))
         args["customParameters"] = CustomParameters(**filtered_parameters)
+        #args["customParameters"] = CustomParameters(**filtered_parameters)
+        #print(f"args = {args}")
+        #print(f"custom_parameter_keys = {custom_parameter_keys}")
+        #print(f"filtered_parameters = {filtered_parameters}")
         return AlgorithmArgs(**args)
 
 
@@ -57,7 +67,7 @@ def main(config: AlgorithmArgs):
                          quantile_epsilon=config.customParameters.quantile_epsilon,
                          track_coefs=True,  # just used for plotting
                          )
-    point_scores = detector.detect()
+    point_scores = detector.detect()  # TODO: bug here, go to line 91 of detect()
 
     # print("\n=== Cluster anomalies ===")
     # clusters = detector.find_cluster_anomalies(point_scores, d_max=2.5, anomaly_counter_threshold=2)
@@ -73,9 +83,9 @@ def main(config: AlgorithmArgs):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        print("Wrong number of arguments specified; expected a single json-string!")
-        exit(1)
+    #if len(sys.argv) != 2:
+    #    print("Wrong number of arguments specified; expected a single json-string!")
+    #    exit(1)
 
     config = AlgorithmArgs.from_sys_args()
     print(f"Config: {config}")
