@@ -1,7 +1,10 @@
 #!/usr/bin/env python
+import pathlib
+
 import numpy as np
 import os.path
 import os
+from pathlib import Path
 # import pywt
 #from numba import jit
 
@@ -64,18 +67,23 @@ def timecropping(signal_length, sampling_freq, full_signal, time_limit):
 
 
 def read_sourcefile(filename, croptime=None):
+    parent = Path(__file__).resolve().parent
+    print(parent)
+    #print(parent)
     match OS_TYPE:
         case "nt":
-            work_dir = "C:\\Users\\User\\Desktop\\Testbetrieb\\snippets"
+            work_dir = ("\\MA_Testdaten\\snippets\\")
         case "posix":
-            myuser = os.environ.get('USER')
-            work_dir = "//home//"+myuser+"//Schreibtisch//Testbetrieb//snippets"
+            #myuser = os.environ.get('USER')
+            work_dir = ("/MA_Testdaten/snippets/")
         case _:
             work_dir = "C:\\Users\\User\\Desktop\\Testbetrieb\\snippets"
-    base_filename = filename
+
     file_type = ".wav"
-    target_file = base_filename + file_type
-    wavefile = os.path.join(work_dir, target_file)
+
+
+    wavefile = ( str(parent) + work_dir + filename + file_type)
+    print(wavefile)
     sampling_frequency, full_signal = read(wavefile)
     sig_length = full_signal.shape[0] / sampling_frequency
     if (USE_DEBUGPRINT):
@@ -220,8 +228,8 @@ if __name__ == "__main__":
         # axs1.plot(SD_ok1[0], (SD_ok1[1]), label="fft_signal2")
         # axs2.plot(SD_nok1[0], (SD_nok1[1]), label="fft_signal2")
 
-        plt.semilogy(SD_ok1, ok)
-        plt.ylim([1e-7, 1e2])
-        plt.xlabel('frequency [Hz]')
-        plt.ylabel('PSD [V**2/Hz]')
-        plt.show()
+        #plt.semilogy(SD_ok1, ok)
+        #plt.ylim([1e-7, 1e2])
+        #plt.xlabel('frequency [Hz]')
+        #plt.ylabel('PSD [V**2/Hz]')
+        #plt.show()
