@@ -1,1 +1,4 @@
-/results/anomaly_scores.ts
+/results/
+/results/*
+/MA_Testdaten/
+/MA_Testdaten/*

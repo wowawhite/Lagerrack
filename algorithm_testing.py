@@ -13,9 +13,9 @@ from dwt_mlead import DWT_MLEAD
 @dataclass
 class CustomParameters:
     start_level: int = 3
-    quantile_epsilon: float = 0.01
-    random_state: int = 42
-    use_column_index: int = 1
+    quantile_epsilon: float = 0.001  # Marking anomaly if p < quantile, where p is
+    random_state: int = 999999
+    use_column_index: int = 0
 
 
 class AlgorithmArgs(argparse.Namespace):
@@ -78,8 +78,8 @@ def main(config: AlgorithmArgs):
     np.savetxt(config.dataOutput, point_scores, delimiter=",")
     print("\n=== Storing results ===")
     print(f"Saved **point scores** to {config.dataOutput}.")
-
-    # detector.plot(coefs=False, point_anomaly_scores=point_scores)
+#  TODO add positives and negatives to plot
+    detector.plot(coefs=False, point_anomaly_scores=point_scores)
 
 
 if __name__ == "__main__":

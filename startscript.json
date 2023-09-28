@@ -1,7 +1,7 @@
 
   {
     "executionType": "execute", 
-    "dataInput": "/home/wowa/PycharmProjects/Lagerrack/dataset.csv",
+    "dataInput": "/home/wowa/PycharmProjects/Lagerrack/dataset_ok1.csv",
     "dataOutput": "/home/wowa/PycharmProjects/Lagerrack/results/anomaly_scores.ts",
     "modelInput": "/home/wowa/PycharmProjects/Lagerrack/results/model.pkl",
     "modelOutput": "/home/wowa/PycharmProjects/Lagerrack/results/model.pkl",
