@@ -6,7 +6,7 @@ import os.path
 import os
 from pathlib import Path
 # import pywt
-#from numba import jit
+
 
 import timeit
 from statsmodels.tsa.stattools import acf, pacf
@@ -113,6 +113,8 @@ def calculate_spectraldensity(sd_sampling_frequency, sd_source_signal):
     x += rng.normal(scale=np.sqrt(noise_power), size=time_t.shape)
     f, Pxx_den = signal.periodogram(x, fs)
     print(f"f, Pxx_den  = {f} - {Pxx_den} [s]")
+    print(f"f, Pxx_den  = {len(f)} - {len(Pxx_den)} ")
+
     return f, Pxx_den
 
 
@@ -194,42 +196,42 @@ if __name__ == "__main__":
     time = np.linspace(0., signal1.shape[0] / sampling_frequency1, signal1.shape[0])  # start, end, spacing
     time2 = np.linspace(0., signal2.shape[0] / sampling_frequency2, signal2.shape[0])  # start, end, spacing
 
-    # fft_ok1 = calculate_fft(sampling_frequency, signal)
-    # fft_nok1 = calculate_fft(sampling_frequency2, signal2)
+    fft_ok1 = calculate_fft(sampling_frequency1, signal1)
+    fft_nok1 = calculate_fft(sampling_frequency2, signal2)
 
-    SD_ok1, ok = calculate_spectraldensity(sampling_frequency1, signal1)
-    # SD_nok1 = calculate_spectraldensity(sampling_frequency2, signal2)
+    SD_ok1 = calculate_spectraldensity(sampling_frequency1, signal1)
+    SD_nok1 = calculate_spectraldensity(sampling_frequency2, signal2)
 
     # calculate_autocorrelation(signal_length, sampling_frequency, signal, timelimit)
     # calculate_autocorrelation(signal_length2, sampling_frequency2, signal2, timelimit)
 
     if USE_PLOTGRAPH:
         # TODO create an array with calculations and add them to subplot by iteration
-        fig, (axs1) = plt.subplots(1)
+        fig, (axs1, axs2, axs3, axs4, axs5, axs6) = plt.subplots(1)
         # fig, (axs3,axs4) = plt.subplots()
-        # axs1.plot(time, signal, label="source signal1")
-        # axs1.xlabel("Time [s]")
-        # axs1.ylabel("Amplitude")
+        axs1.plot(time, signal, label="source signal1")
+        axs1.xlabel("Time [s]")
+        axs1.ylabel("Amplitude")
 
-        # axs2.plot(time2, signal2, label="source signal2")
-        # axs2.xlabel("Time [s]")
-        # axs2.ylabel("Amplitude")
+        axs2.plot(time2, signal2, label="source signal2")
+        axs2.xlabel("Time [s]")
+        axs2.ylabel("Amplitude")
 
-        # axs3.plot(fft_ok1[0], np.abs(fft_ok1[1]), label="fft_signal1")
-        # axs3.xlabel("Freq [Hz]")
-        # axs3.ylabel("Amplitude")
+        axs3.plot(fft_ok1[0], np.abs(fft_ok1[1]), label="fft_signal1")
+        axs3.xlabel("Freq [Hz]")
+        axs3.ylabel("Amplitude")
 
-        # axs4.plot(fft_nok1[0], (fft_ok1[1]), label="fft_signal2")
-        # axs4.xlabel("Freq [Hz]")
-        # axs4.ylabel("Amplitude")
+        axs4.plot(fft_nok1[0], (fft_ok1[1]), label="fft_signal2")
+        axs4.xlabel("Freq [Hz]")
+        axs4.ylabel("Amplitude")
         # axs1.semilogx()
         # axs1.semilogy()
         # axs1.set_ylim([1e-7, 1e2])
-        # axs1.plot(SD_ok1[0], (SD_ok1[1]), label="fft_signal2")
-        # axs2.plot(SD_nok1[0], (SD_nok1[1]), label="fft_signal2")
+        axs5.plot(SD_ok1[0], (SD_ok1[1]), label="SD_ok1")
+        axs6.plot(SD_nok1[0], (SD_nok1[1]), label="SD_nok1")
 
         #plt.semilogy(SD_ok1, ok)
         #plt.ylim([1e-7, 1e2])
         #plt.xlabel('frequency [Hz]')
         #plt.ylabel('PSD [V**2/Hz]')
-        #plt.show()
+        plt.show()
