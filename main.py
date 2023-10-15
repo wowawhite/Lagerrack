@@ -16,6 +16,7 @@ from scipy.io.wavfile import read
 from scipy.fft import fft, fftfreq
 from scipy import signal
 import matplotlib.pyplot as plt
+from matplotlib import gridspec
 
 rng = np.random.default_rng()
 
@@ -28,9 +29,9 @@ from PyQt5.QtWidgets import QApplication
 # import tensorflow as tf
 
 # program control global variables
-USE_CUDA = False
+USE_CUDA = True
 USE_PLOTGRAPH = True
-USE_DEBUGPRINT = True
+USE_DEBUGPRINT = False
 OS_TYPE = os.name
 
 if (USE_DEBUGPRINT):
@@ -44,7 +45,7 @@ if USE_CUDA:
     import cupy as cp  # install pip cupy-cuda12x
     import cupyx as cpx
 
-    # import cusignal as cus  # needs WSL2 (yes, not WSL1)
+    # import cusignal as cus  # needs WSL2 (yes, not WSL1) to run on windows
     CUPY_GPU_MEMORY_LIMIT = "4294967296"  # "1073741824"
     # do not use  scipy.fft!
     feedback_cuda = cp.cuda.runtime.driverGetVersion()
@@ -56,20 +57,24 @@ def normalizing(nsignal):
     return y_norm
 
 
-def timecropping(signal_length, sampling_freq, full_signal, time_limit):
-    if signal_length < timelimit:
-        time_limit = signal_length
-    cropped_N = int(sampling_freq * timelimit)
-    print(f"cropping {time_limit} seconds and {cropped_N} samples")
-    cropped_signal = full_signal[0: cropped_N]
-    cropped_length = cropped_signal.shape[0] / sampling_freq
-    return cropped_length, cropped_N, cropped_signal
+def timecropping(signal_length, sampling_freq, full_signal, start_time, time_len):
+    if signal_length-time_len < time_len:
+        start_time = signal_length - time_len
+    #signal_N = int(sampling_freq * signal_length)
+    first_N = int(sampling_freq * start_time)
+    last_N = int(sampling_freq * time_len + first_N)
+    count_N = last_N-first_N
+    print(f"cropping from {start_time} to {start_time+time_len} seconds and {count_N} samples")
+    cropped_signal = full_signal[first_N: last_N]
+    cropped_length = cropped_signal.shape[0] / sampling_freq  # back to time
+    return cropped_length, count_N, cropped_signal
 
 
-def read_sourcefile(filename, croptime=None):
+def read_sourcefile(filename, starttime=None, croptime=None):
     parent = Path(__file__).resolve().parent
-    print(parent)
-    #print(parent)
+    if USE_DEBUGPRINT:
+        print(parent)
+
     match OS_TYPE:
         case "nt":
             work_dir = ("\\MA_Testdaten\\snippets\\")
@@ -78,10 +83,7 @@ def read_sourcefile(filename, croptime=None):
             work_dir = ("/MA_Testdaten/snippets/")
         case _:
             work_dir = "C:\\Users\\User\\Desktop\\Testbetrieb\\snippets"
-
     file_type = ".wav"
-
-
     wavefile = ( str(parent) + work_dir + filename + file_type)
     print(wavefile)
     sampling_frequency, full_signal = read(wavefile)
@@ -92,14 +94,13 @@ def read_sourcefile(filename, croptime=None):
         print(f"shape[0] = {full_signal.shape[0]}")
         print(f"full signal length  = {sig_length} [s]")
     cropped_length, cropped_N, cropped_signal = \
-        timecropping(sig_length, sampling_frequency, full_signal, croptime)
+        timecropping(sig_length, sampling_frequency, full_signal, starttime, croptime)
     cropped_normalized_signal = normalizing(cropped_signal)
-    return sampling_frequency, cropped_normalized_signal
-
+    ret_starttime = starttime; ret_endtime = starttime + croptime
+    return sampling_frequency, cropped_normalized_signal, filename, ret_starttime, ret_endtime
 
 def calculate_passfilter(fft_sampling_frequency, fft_source_signal, low, high):
     return
-
 
 def calculate_spectraldensity(sd_sampling_frequency, sd_source_signal):
     # https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.periodogram.html
@@ -112,9 +113,9 @@ def calculate_spectraldensity(sd_sampling_frequency, sd_source_signal):
     x = amp * np.sin(2 * np.pi * freq * time_t)
     x += rng.normal(scale=np.sqrt(noise_power), size=time_t.shape)
     f, Pxx_den = signal.periodogram(x, fs)
-    print(f"f, Pxx_den  = {f} - {Pxx_den} [s]")
-    print(f"f, Pxx_den  = {len(f)} - {len(Pxx_den)} ")
-
+    if USE_DEBUGPRINT:
+        print(f"f, Pxx_den  = {f} - {Pxx_den} [s]")
+        print(f"f, Pxx_den  = {len(f)} - {len(Pxx_den)} ")
     return f, Pxx_den
 
 
@@ -122,13 +123,12 @@ def calculate_fft(fft_sampling_frequency, fft_source_signal):
     N = np.size(fft_source_signal)
     sample_stepping = 1.0 / fft_sampling_frequency
     xf = fftfreq(N, sample_stepping)[:N // 2]
-
     if USE_CUDA:
         cache = cp.fft.config.get_plan_cache()
         cache.clear()
-
         cp._default_memory_pool.free_all_blocks()
-        print("Used GPU cache before calculation:", cp.get_default_memory_pool().used_bytes() / 1024, "kB")
+        if USE_DEBUGPRINT:
+            print("Used GPU cache before calculation:", cp.get_default_memory_pool().used_bytes() / 1024, "kB")
         cp.cuda.runtime.memGetInfo()
         cyNorm = cp.array(fft_source_signal)
         cyf = cp.fft.fft(cyNorm)[:N // 2]
@@ -136,13 +136,12 @@ def calculate_fft(fft_sampling_frequency, fft_source_signal):
         # flush GPU memory to avoid cuda memory leak
         cache = cp.fft.config.get_plan_cache()
         cache.clear()
-        print("Used GPU cache after calculation:", cp.get_default_memory_pool().used_bytes() / 1024, "kB")
-
+        if USE_DEBUGPRINT:
+            print("Used GPU cache after calculation:", cp.get_default_memory_pool().used_bytes() / 1024, "kB")
     else:
         yfn = fft(fft_source_signal)
         yf = yfn[:N // 2]
-
-    yf = yf / np.max(yf)
+    yf = np.abs(yf / np.max(yf)) # normalize and get amplitude density
 
     return xf, yf
 
@@ -151,7 +150,6 @@ def calculate_autocorrelation(sampling_frequency, acf_signal):
     if USE_CUDA:
         pass  # TODO autocorrelation cuda
     else:
-
         # https://www.statsmodels.org/stable/generated/statsmodels.tsa.stattools.acf.html#statsmodels.tsa.stattools.acf
         yf = acf(acf_signal)
         print(f"size yf = {np.size(yf)}")
@@ -162,14 +160,12 @@ def calculate_autocorrelation(sampling_frequency, acf_signal):
         # alternative fft acf
     return xf, yf
 
-
 def calculate_autocorrelation2(sampling_frequency, acf_signal):
     result = np.correlate(acf_signal, acf_signal, mode='full')
 
     yf = result[result.size / 2:]
     xf = np.arange(0, yf.shape[0])
     return xf, yf
-
 
 def calculate_discretewavelet():
     # https://pywavelets.readthedocs.io/en/latest/ref/cwt.html
@@ -184,54 +180,43 @@ def calculate_discretewavelet():
     # x = wavefile
     # x = x[sr:2 * sr]
     # x = x / np.max(np.abs(x))
-
     return
 
 
 if __name__ == "__main__":
-    timelimit = 50.0  # Limit is 400s due GPU low memory size
-    sampling_frequency1, signal1 = read_sourcefile("ok2", timelimit)
-    sampling_frequency2, signal2 = read_sourcefile("nok2", timelimit)
+    starttime = 1000.0
+    timelimit = 40.0  # Limit is 400s due GPU low memory size
+    all_tuples = []
+    # TODO: add new files or snippets here:
+    #all_tuples.append((read_sourcefile("ok2", starttime, timelimit)))
+    #ret_tuple=(read_sourcefile("nok2", starttime, timelimit))
+    #all_tuples.append(read_sourcefile("nok2", starttime, timelimit))
+    all_tuples.append(read_sourcefile("visc3_ultrasonic", 25, timelimit))
+    all_tuples.append(read_sourcefile("visc3_ultrasonic", 150, timelimit))
+    #all_tuples.append(read_sourcefile("visc3_ultrasonic", 320, timelimit))
+    #all_tuples.append(read_sourcefile("visc3_ultrasonic", 500, timelimit))
+    all_tuples.append(read_sourcefile("visc3_ultrasonic", 700, timelimit))
+    all_tuples.append(read_sourcefile("visc3_ultrasonic", 900, timelimit))
+    all_tuples.append(read_sourcefile("visc3_ultrasonic", 1000, timelimit))
+    all_tuples.append(read_sourcefile("visc3_ultrasonic", 1100, timelimit))
 
-    time = np.linspace(0., signal1.shape[0] / sampling_frequency1, signal1.shape[0])  # start, end, spacing
-    time2 = np.linspace(0., signal2.shape[0] / sampling_frequency2, signal2.shape[0])  # start, end, spacing
-
-    fft_ok1 = calculate_fft(sampling_frequency1, signal1)
-    fft_nok1 = calculate_fft(sampling_frequency2, signal2)
-
-    SD_ok1 = calculate_spectraldensity(sampling_frequency1, signal1)
-    SD_nok1 = calculate_spectraldensity(sampling_frequency2, signal2)
-
-    # calculate_autocorrelation(signal_length, sampling_frequency, signal, timelimit)
-    # calculate_autocorrelation(signal_length2, sampling_frequency2, signal2, timelimit)
+    cols = 2
+    rows = len(all_tuples)
 
     if USE_PLOTGRAPH:
-        # TODO create an array with calculations and add them to subplot by iteration
-        fig, (axs1, axs2, axs3, axs4, axs5, axs6) = plt.subplots(1)
-        # fig, (axs3,axs4) = plt.subplots()
-        axs1.plot(time, signal, label="source signal1")
-        axs1.xlabel("Time [s]")
-        axs1.ylabel("Amplitude")
+        fig, ax = plt.subplots(rows, cols, sharex=True)
 
-        axs2.plot(time2, signal2, label="source signal2")
-        axs2.xlabel("Time [s]")
-        axs2.ylabel("Amplitude")
+    for index, one_tuple in enumerate(all_tuples):
+        this_sampling_frequency = one_tuple[0]; this_signal = one_tuple[1]; this_name = one_tuple[2];
 
-        axs3.plot(fft_ok1[0], np.abs(fft_ok1[1]), label="fft_signal1")
-        axs3.xlabel("Freq [Hz]")
-        axs3.ylabel("Amplitude")
+        fft_return = calculate_fft(this_sampling_frequency, this_signal)  # returns x,y values
 
-        axs4.plot(fft_nok1[0], (fft_ok1[1]), label="fft_signal2")
-        axs4.xlabel("Freq [Hz]")
-        axs4.ylabel("Amplitude")
-        # axs1.semilogx()
-        # axs1.semilogy()
-        # axs1.set_ylim([1e-7, 1e2])
-        axs5.plot(SD_ok1[0], (SD_ok1[1]), label="SD_ok1")
-        axs6.plot(SD_nok1[0], (SD_nok1[1]), label="SD_nok1")
 
-        #plt.semilogy(SD_ok1, ok)
-        #plt.ylim([1e-7, 1e2])
-        #plt.xlabel('frequency [Hz]')
-        #plt.ylabel('PSD [V**2/Hz]')
-        plt.show()
+        if USE_PLOTGRAPH:
+            time = np.linspace(one_tuple[3], one_tuple[4], this_signal.shape[0])  # start, end, spacing
+            ax[index, 0].title.set_text(this_name)
+            ax[index, 0].plot(time,this_signal)
+            ax[index, 1].plot(fft_return[0], fft_return[1])
+
+    fig.tight_layout()
+    plt.show()
