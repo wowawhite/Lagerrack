@@ -3,10 +3,10 @@
 # Task 1: Import Libraries
 
 import numpy as np
-import tensorflow as tf
+
 import pandas as pd
 import warnings
-#warnings.filterwarnings('ignore')
+warnings.filterwarnings('ignore')
 import seaborn as sns
 import os
 
@@ -14,6 +14,7 @@ from matplotlib.pylab import rcParams
 import matplotlib.pyplot as plt
 import plotly.express as px
 import plotly.graph_objects as go
+import tensorflow as tf
 
 
 USE_CUDA = True
@@ -30,9 +31,15 @@ if USE_CUDA:
     print("Enable CUDA Support")
     import cupy as cp  # install pip cupy-cuda12x
     feedback_cuda = cp.cuda.runtime.driverGetVersion()
+    gpu_devices = tf.config.experimental.list_physical_devices('GPU')
+    for device in gpu_devices:
+        tf.config.experimental.set_memory_growth(device, True)
     print(f"CUDA driver version is {feedback_cuda}")
     print("Cuda devices available:",tf.config.list_physical_devices('GPU'))
-
+else:
+    print(f"Using CPU only")
+    my_devices = tf.config.experimental.list_physical_devices(device_type='CPU')
+    tf.config.experimental.set_visible_devices(devices= my_devices, device_type='CPU')
 print('Tensorflow version:', tf.__version__)
 
 # Task 2: Load and Inspect the S&P 500 Index Data
@@ -57,11 +64,11 @@ print(train.shape,test.shape)
 
 from sklearn.preprocessing import StandardScaler
 
-scalar = StandardScaler()
-scalar = scalar.fit(train[['close']])
+scaler = StandardScaler()
+scaler = scaler.fit(train[['close']])
 
-train['close'] = scalar.transform(train[['close']])
-test['close'] = scalar.transform(test[['close']])
+train['close'] = scaler.transform(train[['close']])
+test['close'] = scaler.transform(test[['close']])
 
 #Task 4: Create Training and Test Splits
 
@@ -94,10 +101,7 @@ model.add(LSTM(128,return_sequences=True))
 model.add(Dropout(0.2))
 model.add(TimeDistributed(Dense(num_features))) # apply a layer to every temporal slice of an input.
 
-model.compile(
-    loss='mae',
-    optimizer='adam'
-)
+model.compile(loss='mae',optimizer='adam')
 model.summary()
 
 # Task 6: Train the Autoencoder
@@ -105,17 +109,22 @@ model.summary()
 #from tensorflow.keras.callbacks import EarlyStopping
 #early_stop = EarlyStopping(monitor='val_loss',patience=3,mode='min') # if the monitored metric does not change wrt to the mode applied
 #model.fit(X_train,y_train,epochs=30,batch_size=32,validation_split=0.1,callbacks=[early_stop],shuffle=False)
-my_history = model.fit(X_train,y_train,epochs=30,batch_size=32,validation_split=0.1,shuffle=False)
+my_history = model.fit(X_train,y_train,epochs=10,batch_size=32,validation_split=0.1,shuffle=False)
 
-#my_history = model.history
-# saving model for later use
-model.save('anomaly_model.h5')
+
+# list all data in history# saving model for later use
+# list all data in history
+
+# should print sth like ['accuracy', 'loss', 'val_accuracy', 'val_loss']
+# TODO: BUG: saving model deletes history
+# model.save('anomaly_model.h5')
+
 
 # Task 7: Plot Metrics and Evaluate the Model
 
 # Load our saved model
-#history = tf.keras.models.load_model('anomaly_model.h5')
-
+# my_history = tf.keras.models.load_model('anomaly_model.h5')
+print(my_history.history.keys())
 err = pd.DataFrame(my_history.history)
 err.plot()
 plt.xlabel('Number of Epochs')
@@ -150,8 +159,11 @@ fig.show()
 anomalies = test_score_df[test_score_df['anomaly']==True]
 anomalies.head()
 fig = go.Figure()
-fig.add_trace(go.Scatter(x=test[time_steps:]['date'],y=scalar.inverse_transform(test[time_steps:]['close']),mode='lines',name='Close Price'))
-fig.add_trace(go.Scatter(x=anomalies['date'],y=scalar.inverse_transform(anomalies['close']),mode='markers',name='Anomaly'))
+# TODO: BUG: Expected 2D, got 1D. probably something wrong with scaler or "scalar" operator
+fig.add_trace(go.Scatter(x=test[time_steps:]['date'], y=scaler.inverse_transform(test[time_steps:]['close']), mode='lines',name='Close Price'))
+print(scaler.transform(anomalies['close']))
+print(scaler.inverse_transform(anomalies['close']))
+fig.add_trace(go.Scatter(x=anomalies['date'],y=scaler.inverse_transform(anomalies['close']),mode='markers',name='Anomaly'))
 fig.update_layout(title='S&P 500 with Anomalies',xaxis_title='Time',yaxis_title='INDEXSP',showlegend=True)
 fig.show()
 

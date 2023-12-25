@@ -3,7 +3,7 @@
 # Task 1: Import Libraries
 
 import numpy as np
-import tensorflow as tf
+
 import pandas as pd
 import warnings
 warnings.filterwarnings('ignore')
@@ -14,9 +14,10 @@ from matplotlib.pylab import rcParams
 import matplotlib.pyplot as plt
 import plotly.express as px
 import plotly.graph_objects as go
+import tensorflow as tf
 
 
-USE_CUDA = True
+USE_CUDA = False
 
 
 OS_TYPE = os.name
@@ -30,9 +31,15 @@ if USE_CUDA:
     print("Enable CUDA Support")
     import cupy as cp  # install pip cupy-cuda12x
     feedback_cuda = cp.cuda.runtime.driverGetVersion()
+    gpu_devices = tf.config.experimental.list_physical_devices('GPU')
+    for device in gpu_devices:
+        tf.config.experimental.set_memory_growth(device, True)
     print(f"CUDA driver version is {feedback_cuda}")
     print("Cuda devices available:",tf.config.list_physical_devices('GPU'))
-
+else:
+    print(f"Using CPU only")
+    my_devices = tf.config.experimental.list_physical_devices(device_type='CPU')
+    tf.config.experimental.set_visible_devices(devices= my_devices, device_type='CPU')
 print('Tensorflow version:', tf.__version__)
 
 # Task 2: Load and Inspect the S&P 500 Index Data
@@ -104,15 +111,19 @@ model.summary()
 #model.fit(X_train,y_train,epochs=30,batch_size=32,validation_split=0.1,callbacks=[early_stop],shuffle=False)
 #my_history = model.fit(X_train,y_train,epochs=30,batch_size=32,validation_split=0.1,shuffle=False)
 
-#my_history = model.history
-# saving model for later use
-#model.save('anomaly_model.h5')
+
+# list all data in history# saving model for later use
+# list all data in history
+
+# should print dict_keys(['loss', 'val_loss'])
+# model.save('anomaly_model.h5')
+
 
 # Task 7: Plot Metrics and Evaluate the Model
 
 # Load our saved model
 my_history = tf.keras.models.load_model('anomaly_model.h5')
-
+print(my_history.history.keys())
 err = pd.DataFrame(my_history.history)
 err.plot()
 plt.xlabel('Number of Epochs')
@@ -121,7 +132,7 @@ plt.ylabel('Loss')
 # Calculating the mae for training data
 X_train_pred = model.predict(X_train)
 train_mae_loss = pd.DataFrame(np.mean(np.abs(X_train_pred - X_train),axis=1),columns=['Error'])
-sns.distplot(train_mae_loss,bins=50,kde=True) # Plot histogram of traning losses
+sns.distplot(train_mae_loss,bins=50,kde=True) # Plot histogram of training losses
 threshold = 0.65
 
 
@@ -147,6 +158,7 @@ fig.show()
 anomalies = test_score_df[test_score_df['anomaly']==True]
 anomalies.head()
 fig = go.Figure()
+
 fig.add_trace(go.Scatter(x=test[time_steps:]['date'],y=scalar.inverse_transform(test[time_steps:]['close']),mode='lines',name='Close Price'))
 fig.add_trace(go.Scatter(x=anomalies['date'],y=scalar.inverse_transform(anomalies['close']),mode='markers',name='Anomaly'))
 fig.update_layout(title='S&P 500 with Anomalies',xaxis_title='Time',yaxis_title='INDEXSP',showlegend=True)
