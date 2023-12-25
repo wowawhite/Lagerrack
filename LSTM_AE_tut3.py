@@ -6,7 +6,7 @@ import numpy as np
 import tensorflow as tf
 import pandas as pd
 import warnings
-#warnings.filterwarnings('ignore')
+warnings.filterwarnings('ignore')
 import seaborn as sns
 import os
 
@@ -94,10 +94,7 @@ model.add(LSTM(128,return_sequences=True))
 model.add(Dropout(0.2))
 model.add(TimeDistributed(Dense(num_features))) # apply a layer to every temporal slice of an input.
 
-model.compile(
-    loss='mae',
-    optimizer='adam'
-)
+model.compile(loss='mae',optimizer='adam')
 model.summary()
 
 # Task 6: Train the Autoencoder
@@ -105,16 +102,16 @@ model.summary()
 #from tensorflow.keras.callbacks import EarlyStopping
 #early_stop = EarlyStopping(monitor='val_loss',patience=3,mode='min') # if the monitored metric does not change wrt to the mode applied
 #model.fit(X_train,y_train,epochs=30,batch_size=32,validation_split=0.1,callbacks=[early_stop],shuffle=False)
-my_history = model.fit(X_train,y_train,epochs=30,batch_size=32,validation_split=0.1,shuffle=False)
+#my_history = model.fit(X_train,y_train,epochs=30,batch_size=32,validation_split=0.1,shuffle=False)
 
 #my_history = model.history
 # saving model for later use
-model.save('anomaly_model.h5')
+#model.save('anomaly_model.h5')
 
 # Task 7: Plot Metrics and Evaluate the Model
 
 # Load our saved model
-#history = tf.keras.models.load_model('anomaly_model.h5')
+my_history = tf.keras.models.load_model('anomaly_model.h5')
 
 err = pd.DataFrame(my_history.history)
 err.plot()
@@ -124,7 +121,7 @@ plt.ylabel('Loss')
 # Calculating the mae for training data
 X_train_pred = model.predict(X_train)
 train_mae_loss = pd.DataFrame(np.mean(np.abs(X_train_pred - X_train),axis=1),columns=['Error'])
-sns.distplot(train_mae_loss,bins=50,kde=True) # Plot histogram of training losses
+sns.distplot(train_mae_loss,bins=50,kde=True) # Plot histogram of traning losses
 threshold = 0.65
 
 
