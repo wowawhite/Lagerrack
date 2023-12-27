@@ -9,13 +9,13 @@ import warnings
 warnings.filterwarnings('ignore')
 import seaborn as sns
 import os
-
+import pickle
 from matplotlib.pylab import rcParams
 import matplotlib.pyplot as plt
 import plotly.express as px
 import plotly.graph_objects as go
 import tensorflow as tf
-
+from pathlib import Path
 
 USE_CUDA = True
 
@@ -42,6 +42,13 @@ else:
     tf.config.experimental.set_visible_devices(devices= my_devices, device_type='CPU')
 print('Tensorflow version:', tf.__version__)
 
+# get parent path
+path_parent = Path(__file__).resolve().parent
+
+print("type path_parent:", type(path_parent))
+print("path_parent:", path_parent)
+
+
 # Task 2: Load and Inspect the S&P 500 Index Data
 
 df = pd.read_csv('S&P_500_Index_Data.csv',parse_dates=['date'])
@@ -56,8 +63,10 @@ fig.show()
 
 #Task 3: Data Preprocessing
 
+# split data into train/test set
 train_size = int(len(df) * 0.8) # 80% size for training set
 test_size = len(df) - train_size
+
 train, test = df.iloc[0:train_size], df.iloc[train_size:]
 
 print(train.shape,test.shape)
@@ -69,7 +78,7 @@ scaler = scaler.fit(train[['close']])
 
 train['close'] = scaler.transform(train[['close']])
 test['close'] = scaler.transform(test[['close']])
-
+#
 #Task 4: Create Training and Test Splits
 
 def create_sequences(X, y, time_steps=1):
@@ -99,32 +108,46 @@ model.add(Dropout(0.2))
 model.add(RepeatVector(timesteps)) # Repeats the input n times.
 model.add(LSTM(128,return_sequences=True))
 model.add(Dropout(0.2))
-model.add(TimeDistributed(Dense(num_features))) # apply a layer to every temporal slice of an input.
+model.add(TimeDistributed(Dense(num_features)))  # apply a layer to every temporal slice of an input.
 
 model.compile(loss='mae',optimizer='adam')
 model.summary()
 
 # Task 6: Train the Autoencoder
 
-#from tensorflow.keras.callbacks import EarlyStopping
-#early_stop = EarlyStopping(monitor='val_loss',patience=3,mode='min') # if the monitored metric does not change wrt to the mode applied
-#model.fit(X_train,y_train,epochs=30,batch_size=32,validation_split=0.1,callbacks=[early_stop],shuffle=False)
-my_history = model.fit(X_train,y_train,epochs=10,batch_size=32,validation_split=0.1,shuffle=False)
+from tensorflow.keras.callbacks import EarlyStopping
+early_stop = EarlyStopping(monitor='val_loss',patience=3,mode='min') # if the monitored metric does not change wrt to the mode applied
+my_history = model.fit(X_train,y_train,epochs=1,batch_size=32,validation_split=0.1,callbacks=[early_stop],shuffle=False)
+#my_history = model.fit(X_train,y_train,epochs=10,batch_size=32,validation_split=0.1,shuffle=False)
+
+# save model while training with checkpoints
+# https://keras.io/api/callbacks/model_checkpoint/
+# https://www.tensorflow.org/tutorials/keras/save_and_load
 
 
 # list all data in history# saving model for later use
 # list all data in history
+# alternative save https://machinelearningmastery.com/save-load-keras-deep-learning-models/
+# https://stackoverflow.com/questions/66827371/difference-between-tf-saved-model-savemodel-path-to-dir-and-tf-keras-model-sa
 
 # should print sth like ['accuracy', 'loss', 'val_accuracy', 'val_loss']
 # TODO: BUG: saving model deletes history
-# model.save('anomaly_model.h5')
+tf.keras.models.save_model( model, "/home/wowa/PycharmProjects/Lagerrack/my_model.keras",overwrite=True)
 
+with open('my_trainhistory', 'wb') as file_pi:
+    pickle.dump(my_history, file_pi)
 
 # Task 7: Plot Metrics and Evaluate the Model
 
 # Load our saved model
-# my_history = tf.keras.models.load_model('anomaly_model.h5')
-print(my_history.history.keys())
+model_loaded = tf.keras.models.load_model("/home/wowa/PycharmProjects/Lagerrack/my_model.keras", compile=True)
+with open('my_trainhistory', "rb") as file_pi:
+    my_history = pickle.load(file_pi)
+
+
+print("my_history.history.keys()\n",my_history.history.keys())  # prints dict_keys(['loss', 'val_loss'])
+print(f"model hist is : \n {my_history.history}")
+
 err = pd.DataFrame(my_history.history)
 err.plot()
 plt.xlabel('Number of Epochs')
@@ -133,37 +156,53 @@ plt.ylabel('Loss')
 # Calculating the mae for training data
 X_train_pred = model.predict(X_train)
 train_mae_loss = pd.DataFrame(np.mean(np.abs(X_train_pred - X_train),axis=1),columns=['Error'])
-sns.distplot(train_mae_loss,bins=50,kde=True) # Plot histogram of training losses
+sns.distplot(train_mae_loss,bins=50,kde=True)  # Plot histogram of training losses
 threshold = 0.65
 
 
 # Calculate mae for test data
 X_test_pred = model.predict(X_test)
 test_mae_loss = np.mean(np.abs(X_test_pred - X_test),axis=1)
-sns.distplot(test_mae_loss, bins=50, kde=True); # Plot histogram of test losses
+sns.distplot(test_mae_loss, bins=50, kde=True)  # Plot histogram of test losses
 
 #Task 8: Detect Anomalies in the S&P 500 Index Data
 
 test_score_df = pd.DataFrame(test[time_steps:])
 test_score_df['loss'] = test_mae_loss
 test_score_df['threshold'] = threshold
-test_score_df['anomaly'] = test_score_df['loss'] > test_score_df['threshold']
+test_score_df['anomaly'] = test_score_df['loss'] > test_score_df['threshold']  # this yields T/F but could be adapted to anomaly score
 test_score_df['close'] = test[time_steps:]['close']
 test_score_df.head()
 test_score_df.tail()
+
+
 fig = go.Figure()
 fig.add_trace(go.Scatter(x=test[time_steps:]['date'],y=test_score_df['loss'],mode='lines',name='Test Loss'))
 fig.add_trace(go.Scatter(x=test[time_steps:]['date'],y=test_score_df['threshold'],mode='lines',name='Threshold'))
 fig.update_layout(xaxis_title='Time',yaxis_title='Loss',showlegend=True)
 fig.show()
-anomalies = test_score_df[test_score_df['anomaly']==True]
+
+anomalies = test_score_df[test_score_df['anomaly'] == True]
 anomalies.head()
+
 fig = go.Figure()
-# TODO: BUG: Expected 2D, got 1D. probably something wrong with scaler or "scalar" operator
-fig.add_trace(go.Scatter(x=test[time_steps:]['date'], y=scaler.inverse_transform(test[time_steps:]['close']), mode='lines',name='Close Price'))
-print(scaler.transform(anomalies['close']))
-print(scaler.inverse_transform(anomalies['close']))
-fig.add_trace(go.Scatter(x=anomalies['date'],y=scaler.inverse_transform(anomalies['close']),mode='markers',name='Anomaly'))
+
+myfresh_x = test[time_steps:]['date']
+#myfresh_y = test[time_steps:]['close']
+myfresh_y = scaler.inverse_transform(test[time_steps:]['close'].values.reshape(-1,1))
+
+print("shapes testdata x,y,:", myfresh_x.shape, myfresh_y.shape)
+# this should plot the original test data
+fig.add_trace(go.Scatter(x=myfresh_x, y=myfresh_y[:,0], mode='lines',name='Close Price'))
+
+myotherfresh_x = anomalies['date']
+#myotherfresh_y = anomalies['close']
+myotherfresh_y = scaler.inverse_transform(anomalies['close'].values.reshape(-1,1))
+print("shapes anomalies x,y,:", myotherfresh_x.shape, myotherfresh_y.shape)
+# this should plot anomaly datapoints
+fig.add_trace(go.Scatter(x=myotherfresh_x,y=myotherfresh_y[:,0],mode='markers',name='Anomaly'))
+
 fig.update_layout(title='S&P 500 with Anomalies',xaxis_title='Time',yaxis_title='INDEXSP',showlegend=True)
 fig.show()
 
+print("ok")
