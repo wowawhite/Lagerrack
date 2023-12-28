@@ -1,9 +1,12 @@
 # https://github.com/datablogger-ml/Anomaly-detection-with-Keras/blob/master/Anomaly_Detection_Time_Series.ipynb
 
+# TODO: hamming window
+
+
 # Task 1: Import Libraries
 
 import numpy as np
-
+import soundfile as sf
 import pandas as pd
 import warnings
 warnings.filterwarnings('ignore')
@@ -17,8 +20,8 @@ import plotly.graph_objects as go
 import tensorflow as tf
 from pathlib import Path
 
-USE_CUDA = False
-
+USE_CUDA = True
+USE_DEBUGPRINT = True
 
 OS_TYPE = os.name
 print(f"OS_TYPE: {OS_TYPE}")
@@ -38,25 +41,57 @@ if USE_CUDA:
     print("Cuda devices available:",tf.config.list_physical_devices('GPU'))
 else:
     print(f"Using CPU only")
-
-    # my_devices = tf.config.experimental.list_physical_devices(device_type='CPU')
-    # tf.config.experimental.set_visible_devices(devices=my_devices, device_type='CPU')
     os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 print('Tensorflow version:', tf.__version__)
 
 # get parent path
 path_parent = Path(__file__).resolve().parent
 
-print("type path_parent:", type(path_parent))
-print("path_parent:", path_parent)
 
+def read_flac_to_pandas(filename):
+    parent = Path(__file__).resolve().parent
+
+    match OS_TYPE:
+        case "nt":
+            work_dir = ("https://youtu.be/KSG_-PqzHnM?si=L7j4wEsRZJYoN3aF&t=12")
+        case "posix":
+            #myuser = os.environ.get('USER')
+            work_dir = ("//media//wowa//Windows Data//wk_messungen//")
+        case _:
+            work_dir = ("//media//wowa//Windows Data//wk_messungen//")
+    file_type = ".flac"
+    audiofile_path = ( work_dir + filename + file_type)
+
+    full_signal, sampling_frequency = sf.read(audiofile_path)
+    full_signal.astype(dtype=np.float16)
+    signal_length = full_signal.shape[0] / sampling_frequency  # signal length in seconds
+    delta_timestep = signal_length / full_signal.shape[0]
+    full_time = np.linspace(0,signal_length,full_signal.shape[0] ,dtype=np.float32)
+
+
+
+    my_array = np.vstack((full_time, full_signal)).T
+    if (USE_DEBUGPRINT):
+        print(f"Opening file:{audiofile_path}")
+        print(f"sampling_frequency = {sampling_frequency}")
+        print(f"full_signal.shape = {full_signal.shape}")
+        print(f"full_time.shape = {full_time.shape}")
+        print(f"full signal length  = {signal_length} [s]")
+
+    # dframe = pd.DataFrame(my_array, columns=['date', 'close'])
+    dframe = pd.DataFrame({'date': pd.Series(full_time, dtype=np.float32),
+                       'close': pd.Series(full_signal, dtype=np.float16)})
+    #return should be dictionary [date][close]
+    return dframe
 
 # Task 2: Load and Inspect the S&P 500 Index Data
 
-df = pd.read_csv('S&P_500_Index_Data.csv',parse_dates=['date'])
+#df = pd.read_csv('S&P_500_Index_Data.csv',parse_dates=['date'])
+df = read_flac_to_pandas("visc6_ultrasonic_ok") [(384000*30):(384000*31)]
+
 df.head()
 df.info()
-print(type(df))
+
 # using Plotly for interactive graphs
 fig = go.Figure()
 fig.add_trace(go.Scatter(x=df['date'],y=df['close'],mode='lines',name='close')) # lines mode for lineplot
@@ -66,12 +101,12 @@ fig.show()
 #Task 3: Data Preprocessing
 
 # split data into train/test set
-train_size = int(len(df) * 0.8) # 80% size for training set
+train_size = int(len(df) * 0.70) # % size for training set
 test_size = len(df) - train_size
 
 train, test = df.iloc[0:train_size], df.iloc[train_size:]
 
-print(train.shape,test.shape)
+print("train.shape,test.shape: ",train.shape,test.shape)
 
 from sklearn.preprocessing import StandardScaler
 
@@ -89,12 +124,14 @@ def create_sequences(X, y, time_steps=1):
         v = X.iloc[i:(i + time_steps)].values
         Xs.append(v)
         ys.append(y.iloc[i + time_steps])
+    # TODO: apply hamming window here
     return np.array(Xs), np.array(ys)
 
+# TODO: This can be improved by playing around with time_steps size
 time_steps = 30
 X_train, y_train = create_sequences(train[['close']],train['close'],time_steps)
 X_test, y_test = create_sequences(test[['close']],test['close'],time_steps)
-print(X_train.shape,y_train.shape)
+print("X_train.shape,y_train.shape: ", X_train.shape,y_train.shape)
 
 # Task 5: Build an LSTM Autoencoder
 

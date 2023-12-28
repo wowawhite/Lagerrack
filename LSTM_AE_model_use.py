@@ -17,7 +17,7 @@ import plotly.graph_objects as go
 import tensorflow as tf
 from pathlib import Path
 
-USE_CUDA = False
+USE_CUDA = True
 
 
 OS_TYPE = os.name
@@ -38,10 +38,8 @@ if USE_CUDA:
     print("Cuda devices available:",tf.config.list_physical_devices('GPU'))
 else:
     print(f"Using CPU only")
-
-    # my_devices = tf.config.experimental.list_physical_devices(device_type='CPU')
-    # tf.config.experimental.set_visible_devices(devices=my_devices, device_type='CPU')
-    os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
+    my_devices = tf.config.experimental.list_physical_devices(device_type='CPU')
+    tf.config.experimental.set_visible_devices(devices= my_devices, device_type='CPU')
 print('Tensorflow version:', tf.__version__)
 
 # get parent path
@@ -56,7 +54,7 @@ print("path_parent:", path_parent)
 df = pd.read_csv('S&P_500_Index_Data.csv',parse_dates=['date'])
 df.head()
 df.info()
-print(type(df))
+
 # using Plotly for interactive graphs
 fig = go.Figure()
 fig.add_trace(go.Scatter(x=df['date'],y=df['close'],mode='lines',name='close')) # lines mode for lineplot
@@ -104,23 +102,23 @@ num_features = X_train.shape[2]
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, LSTM, Dropout, RepeatVector, TimeDistributed
 
-model = Sequential()
-model.add(LSTM(128,input_shape=(timesteps,num_features)))
-model.add(Dropout(0.2))
-model.add(RepeatVector(timesteps)) # Repeats the input n times.
-model.add(LSTM(128,return_sequences=True))
-model.add(Dropout(0.2))
-model.add(TimeDistributed(Dense(num_features)))  # apply a layer to every temporal slice of an input.
-
-model.compile(loss='mae',optimizer='adam')
-model.summary()
+# model_loaded = Sequential()
+# model_loaded.add(LSTM(128,input_shape=(timesteps,num_features)))
+# model_loaded.add(Dropout(0.2))
+# model_loaded.add(RepeatVector(timesteps)) # Repeats the input n times.
+# model_loaded.add(LSTM(128,return_sequences=True))
+# model_loaded.add(Dropout(0.2))
+# model_loaded.add(TimeDistributed(Dense(num_features)))  # apply a layer to every temporal slice of an input.
+#
+# model_loaded.compile(loss='mae',optimizer='adam')
+# model_loaded.summary()
 
 # Task 6: Train the Autoencoder
 
-from tensorflow.keras.callbacks import EarlyStopping
-early_stop = EarlyStopping(monitor='val_loss',patience=3,mode='min') # if the monitored metric does not change wrt to the mode applied
-my_history = model.fit(X_train,y_train,epochs=1,batch_size=32,validation_split=0.1,callbacks=[early_stop],shuffle=False)
-#my_history = model.fit(X_train,y_train,epochs=10,batch_size=32,validation_split=0.1,shuffle=False)
+# from tensorflow.keras.callbacks import EarlyStopping
+# early_stop = EarlyStopping(monitor='val_loss',patience=3,mode='min') # if the monitored metric does not change wrt to the mode applied
+# my_history = model.fit(X_train,y_train,epochs=1,batch_size=32,validation_split=0.1,callbacks=[early_stop],shuffle=False)
+# my_history = model.fit(X_train,y_train,epochs=10,batch_size=32,validation_split=0.1,shuffle=False)
 
 # save model while training with checkpoints
 # https://keras.io/api/callbacks/model_checkpoint/
@@ -134,19 +132,20 @@ my_history = model.fit(X_train,y_train,epochs=1,batch_size=32,validation_split=0
 
 # should print sth like ['accuracy', 'loss', 'val_accuracy', 'val_loss']
 # TODO: BUG: saving model deletes history
-tf.keras.models.save_model( model, "/home/wowa/PycharmProjects/Lagerrack/my_model.keras",overwrite=True)
-
-with open('my_trainhistory', 'wb') as file_pi:
-    pickle.dump(my_history, file_pi)
+# tf.keras.models.save_model( model, "/home/wowa/PycharmProjects/Lagerrack/my_model.keras",overwrite=True)
+#
+# with open('my_trainhistory', 'wb') as file_pi:
+#     pickle.dump(my_history, file_pi)
 
 # Task 7: Plot Metrics and Evaluate the Model
 
 # Load our saved model
 model_loaded = tf.keras.models.load_model("/home/wowa/PycharmProjects/Lagerrack/my_model.keras", compile=True)
+
 with open('my_trainhistory', "rb") as file_pi:
     my_history = pickle.load(file_pi)
 
-
+model_loaded.summary()
 print("my_history.history.keys()\n",my_history.history.keys())  # prints dict_keys(['loss', 'val_loss'])
 print(f"model hist is : \n {my_history.history}")
 
@@ -156,14 +155,14 @@ plt.xlabel('Number of Epochs')
 plt.ylabel('Loss')
 
 # Calculating the mae for training data
-X_train_pred = model.predict(X_train)
+X_train_pred = model_loaded.predict(X_train)
 train_mae_loss = pd.DataFrame(np.mean(np.abs(X_train_pred - X_train),axis=1),columns=['Error'])
 sns.distplot(train_mae_loss,bins=50,kde=True)  # Plot histogram of training losses
 threshold = 0.65
 
 
 # Calculate mae for test data
-X_test_pred = model.predict(X_test)
+X_test_pred = model_loaded.predict(X_test)
 test_mae_loss = np.mean(np.abs(X_test_pred - X_test),axis=1)
 sns.distplot(test_mae_loss, bins=50, kde=True)  # Plot histogram of test losses
 
