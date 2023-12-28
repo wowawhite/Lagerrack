@@ -25,8 +25,7 @@ USE_DEBUGPRINT = True
 
 OS_TYPE = os.name
 print(f"OS_TYPE: {OS_TYPE}")
-sns.set(style='whitegrid', palette='muted')
-rcParams['figure.figsize'] = 16, 6 # set figsize for all images
+
 
 np.random.seed(1)
 tf.random.set_seed(1)
@@ -87,7 +86,7 @@ def read_flac_to_pandas(filename):
 # Task 2: Load and Inspect the S&P 500 Index Data
 
 #df = pd.read_csv('S&P_500_Index_Data.csv',parse_dates=['date'])
-df = read_flac_to_pandas("visc6_ultrasonic_ok") [(384000*30):(384000*31)]
+df = read_flac_to_pandas("visc6_ultrasonic_ok") [(384000*30):(384000*40)]
 
 df.head()
 df.info()
@@ -142,7 +141,7 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, LSTM, Dropout, RepeatVector, TimeDistributed
 
 model = Sequential()
-model.add(LSTM(128,input_shape=(timesteps,num_features)))
+model.add(LSTM(128,input_shape=(timesteps,num_features))) # TODO: what are 128 units for?
 model.add(Dropout(0.2))
 model.add(RepeatVector(timesteps)) # Repeats the input n times.
 model.add(LSTM(128,return_sequences=True))
@@ -151,12 +150,13 @@ model.add(TimeDistributed(Dense(num_features)))  # apply a layer to every tempor
 
 model.compile(loss='mae',optimizer='adam')
 model.summary()
+tf.keras.utils.plot_model(model, to_file='my_modelplot.png', show_shapes=True, show_layer_names=True)
 
 # Task 6: Train the Autoencoder
 
 from tensorflow.keras.callbacks import EarlyStopping
 early_stop = EarlyStopping(monitor='val_loss',patience=3,mode='min') # if the monitored metric does not change wrt to the mode applied
-my_history = model.fit(X_train,y_train,epochs=1,batch_size=32,validation_split=0.1,callbacks=[early_stop],shuffle=False)
+my_history = model.fit(X_train,y_train,epochs=10,batch_size=32,validation_split=0.1,callbacks=[early_stop],shuffle=False)
 #my_history = model.fit(X_train,y_train,epochs=10,batch_size=32,validation_split=0.1,shuffle=False)
 
 # save model while training with checkpoints
@@ -192,17 +192,21 @@ err.plot()
 plt.xlabel('Number of Epochs')
 plt.ylabel('Loss')
 
+# Threshold for anomaly marker TODO: play around to improve
+threshold = 0.95
+
 # Calculating the mae for training data
+sns.set(style='whitegrid', palette='muted')
+rcParams['figure.figsize'] = 16, 6 # set figsize for all images
+
+# TODO: bug when plotting with seaborn. Window is not shown
 X_train_pred = model.predict(X_train)
 train_mae_loss = pd.DataFrame(np.mean(np.abs(X_train_pred - X_train),axis=1),columns=['Error'])
 sns.distplot(train_mae_loss,bins=50,kde=True)  # Plot histogram of training losses
-threshold = 0.65
 
-
-# Calculate mae for test data
 X_test_pred = model.predict(X_test)
 test_mae_loss = np.mean(np.abs(X_test_pred - X_test),axis=1)
-sns.distplot(test_mae_loss, bins=50, kde=True)  # Plot histogram of test losses
+sns.distplot(test_mae_loss, bins=50, kde=True)  # Plot histogram of test losses / KDE=kernel density estimation
 
 #Task 8: Detect Anomalies in the S&P 500 Index Data
 
