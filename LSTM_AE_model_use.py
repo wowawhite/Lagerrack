@@ -1,9 +1,12 @@
 # https://github.com/datablogger-ml/Anomaly-detection-with-Keras/blob/master/Anomaly_Detection_Time_Series.ipynb
 
+# TODO: hamming window
+
+
 # Task 1: Import Libraries
 
 import numpy as np
-
+import soundfile as sf
 import pandas as pd
 import warnings
 warnings.filterwarnings('ignore')
@@ -16,14 +19,16 @@ import plotly.express as px
 import plotly.graph_objects as go
 import tensorflow as tf
 from pathlib import Path
+import platform
+
 
 USE_CUDA = True
-
+USE_DEBUGPRINT = True
 
 OS_TYPE = os.name
+MACHINE_ID = platform.node()
 print(f"OS_TYPE: {OS_TYPE}")
-sns.set(style='whitegrid', palette='muted')
-rcParams['figure.figsize'] = 16, 6 # set figsize for all images
+print(f"MACHINE_ID: {MACHINE_ID}")
 
 np.random.seed(1)
 tf.random.set_seed(1)
@@ -38,20 +43,57 @@ if USE_CUDA:
     print("Cuda devices available:",tf.config.list_physical_devices('GPU'))
 else:
     print(f"Using CPU only")
-    my_devices = tf.config.experimental.list_physical_devices(device_type='CPU')
-    tf.config.experimental.set_visible_devices(devices= my_devices, device_type='CPU')
+    os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 print('Tensorflow version:', tf.__version__)
 
 # get parent path
-path_parent = Path(__file__).resolve().parent
 
-print("type path_parent:", type(path_parent))
-print("path_parent:", path_parent)
 
+def read_flac_to_pandas(filename):
+    parent = Path(__file__).resolve().parent
+
+    match OS_TYPE:
+        case "nt":
+            work_dir = ("https://youtu.be/KSG_-PqzHnM?si=L7j4wEsRZJYoN3aF&t=12")
+        case "posix":
+            if MACHINE_ID=='wowa-desktopL':
+                #myuser = os.environ.get('USER')
+                work_dir = ("//media//wowa//Windows Data//wk_messungen//")
+            elif(MACHINE_ID=="wowa-backend"):
+                work_dir = ("//mnt//datadrive//wk_messungen//")
+
+        case _:
+            work_dir = ("//media//wowa//Windows Data//wk_messungen//")
+    file_type = ".flac"
+    audiofile_path = ( work_dir + filename + file_type)
+
+    full_signal, sampling_frequency = sf.read(audiofile_path)
+    full_signal.astype(dtype=np.float16)
+    signal_length = full_signal.shape[0] / sampling_frequency  # signal length in seconds
+    delta_timestep = signal_length / full_signal.shape[0]
+    full_time = np.linspace(0,signal_length,full_signal.shape[0] ,dtype=np.float32)
+
+
+
+    my_array = np.vstack((full_time, full_signal)).T
+    if (USE_DEBUGPRINT):
+        print(f"Opening file:{audiofile_path}")
+        print(f"sampling_frequency = {sampling_frequency}")
+        print(f"full_signal.shape = {full_signal.shape}")
+        print(f"full_time.shape = {full_time.shape}")
+        print(f"full signal length  = {signal_length} [s]")
+
+    # dframe = pd.DataFrame(my_array, columns=['date', 'close'])
+    dframe = pd.DataFrame({'date': pd.Series(full_time, dtype=np.float32),
+                       'close': pd.Series(full_signal, dtype=np.float16)})
+    #return should be dictionary [date][close]
+    return dframe
 
 # Task 2: Load and Inspect the S&P 500 Index Data
 
-df = pd.read_csv('S&P_500_Index_Data.csv',parse_dates=['date'])
+#df = pd.read_csv('S&P_500_Index_Data.csv',parse_dates=['date'])
+df = read_flac_to_pandas("visc6_ultrasonic_nok")[(384000*30):(384000*50)]
+
 df.head()
 df.info()
 
@@ -64,12 +106,12 @@ fig.show()
 #Task 3: Data Preprocessing
 
 # split data into train/test set
-train_size = int(len(df) * 0.8) # 80% size for training set
+train_size = int(len(df) * 0.70) # % size for training set
 test_size = len(df) - train_size
 
 train, test = df.iloc[0:train_size], df.iloc[train_size:]
 
-print(train.shape,test.shape)
+print("train.shape,test.shape: ",train.shape,test.shape)
 
 from sklearn.preprocessing import StandardScaler
 
@@ -87,38 +129,41 @@ def create_sequences(X, y, time_steps=1):
         v = X.iloc[i:(i + time_steps)].values
         Xs.append(v)
         ys.append(y.iloc[i + time_steps])
+    # TODO: apply hamming window here
     return np.array(Xs), np.array(ys)
 
+# TODO: This can be improved by playing around with time_steps size
 time_steps = 30
 X_train, y_train = create_sequences(train[['close']],train['close'],time_steps)
 X_test, y_test = create_sequences(test[['close']],test['close'],time_steps)
-print(X_train.shape,y_train.shape)
+print("X_train.shape,y_train.shape: ", X_train.shape,y_train.shape)
 
 # Task 5: Build an LSTM Autoencoder
 
 timesteps = X_train.shape[1]
 num_features = X_train.shape[2]
 
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, LSTM, Dropout, RepeatVector, TimeDistributed
-
-# model_loaded = Sequential()
-# model_loaded.add(LSTM(128,input_shape=(timesteps,num_features)))
-# model_loaded.add(Dropout(0.2))
-# model_loaded.add(RepeatVector(timesteps)) # Repeats the input n times.
-# model_loaded.add(LSTM(128,return_sequences=True))
-# model_loaded.add(Dropout(0.2))
-# model_loaded.add(TimeDistributed(Dense(num_features)))  # apply a layer to every temporal slice of an input.
+# from tensorflow.keras.models import Sequential
+# from tensorflow.keras.layers import Dense, LSTM, Dropout, RepeatVector, TimeDistributed
 #
-# model_loaded.compile(loss='mae',optimizer='adam')
-# model_loaded.summary()
+# model = Sequential()
+# model.add(LSTM(128,input_shape=(timesteps,num_features))) # TODO: what are 128 units for?
+# model.add(Dropout(0.2))
+# model.add(RepeatVector(timesteps)) # Repeats the input n times.
+# model.add(LSTM(128,return_sequences=True))
+# model.add(Dropout(0.2))
+# model.add(TimeDistributed(Dense(num_features)))  # apply a layer to every temporal slice of an input.
+#
+# model.compile(loss='mae',optimizer='adam')
+# model.summary()
+# tf.keras.utils.plot_model(model, to_file='my_modelplot.png', show_shapes=True, show_layer_names=True)
 
 # Task 6: Train the Autoencoder
 
 # from tensorflow.keras.callbacks import EarlyStopping
 # early_stop = EarlyStopping(monitor='val_loss',patience=3,mode='min') # if the monitored metric does not change wrt to the mode applied
-# my_history = model.fit(X_train,y_train,epochs=1,batch_size=32,validation_split=0.1,callbacks=[early_stop],shuffle=False)
-# my_history = model.fit(X_train,y_train,epochs=10,batch_size=32,validation_split=0.1,shuffle=False)
+# my_history = model.fit(X_train,y_train,epochs=10,batch_size=32,validation_split=0.1,callbacks=[early_stop],shuffle=False)
+#my_history = model.fit(X_train,y_train,epochs=10,batch_size=32,validation_split=0.1,shuffle=False)
 
 # save model while training with checkpoints
 # https://keras.io/api/callbacks/model_checkpoint/
@@ -141,11 +186,10 @@ from tensorflow.keras.layers import Dense, LSTM, Dropout, RepeatVector, TimeDist
 
 # Load our saved model
 model_loaded = tf.keras.models.load_model("/home/wowa/PycharmProjects/Lagerrack/my_model.keras", compile=True)
-
 with open('my_trainhistory', "rb") as file_pi:
     my_history = pickle.load(file_pi)
 
-model_loaded.summary()
+
 print("my_history.history.keys()\n",my_history.history.keys())  # prints dict_keys(['loss', 'val_loss'])
 print(f"model hist is : \n {my_history.history}")
 
@@ -154,17 +198,21 @@ err.plot()
 plt.xlabel('Number of Epochs')
 plt.ylabel('Loss')
 
+# Threshold for anomaly marker TODO: play around to improve
+threshold = 0.95
+
 # Calculating the mae for training data
+sns.set(style='whitegrid', palette='muted')
+rcParams['figure.figsize'] = 16, 6 # set figsize for all images
+
+# TODO: bug when plotting with seaborn. Window is not shown
 X_train_pred = model_loaded.predict(X_train)
 train_mae_loss = pd.DataFrame(np.mean(np.abs(X_train_pred - X_train),axis=1),columns=['Error'])
 sns.distplot(train_mae_loss,bins=50,kde=True)  # Plot histogram of training losses
-threshold = 0.65
 
-
-# Calculate mae for test data
 X_test_pred = model_loaded.predict(X_test)
 test_mae_loss = np.mean(np.abs(X_test_pred - X_test),axis=1)
-sns.distplot(test_mae_loss, bins=50, kde=True)  # Plot histogram of test losses
+sns.distplot(test_mae_loss, bins=50, kde=True)  # Plot histogram of test losses / KDE=kernel density estimation
 
 #Task 8: Detect Anomalies in the S&P 500 Index Data
 
