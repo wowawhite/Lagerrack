@@ -19,13 +19,16 @@ import plotly.express as px
 import plotly.graph_objects as go
 import tensorflow as tf
 from pathlib import Path
+import platform
+
 
 USE_CUDA = True
 USE_DEBUGPRINT = True
 
 OS_TYPE = os.name
+MACHINE_ID = platform.node()
 print(f"OS_TYPE: {OS_TYPE}")
-
+print(f"MACHINE_ID: {MACHINE_ID}")
 
 np.random.seed(1)
 tf.random.set_seed(1)
@@ -44,7 +47,6 @@ else:
 print('Tensorflow version:', tf.__version__)
 
 # get parent path
-path_parent = Path(__file__).resolve().parent
 
 
 def read_flac_to_pandas(filename):
@@ -54,8 +56,12 @@ def read_flac_to_pandas(filename):
         case "nt":
             work_dir = ("https://youtu.be/KSG_-PqzHnM?si=L7j4wEsRZJYoN3aF&t=12")
         case "posix":
-            #myuser = os.environ.get('USER')
-            work_dir = ("//media//wowa//Windows Data//wk_messungen//")
+            if MACHINE_ID=='wowa-desktopL':
+                #myuser = os.environ.get('USER')
+                work_dir = ("//media//wowa//Windows Data//wk_messungen//")
+            elif(MACHINE_ID=="wowa-backend"):
+                work_dir = ("//mnt//datadrive//wk_messungen//")
+
         case _:
             work_dir = ("//media//wowa//Windows Data//wk_messungen//")
     file_type = ".flac"
