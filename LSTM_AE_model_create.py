@@ -26,6 +26,9 @@ from pathlib import Path
 import platform
 import time
 import json
+from keras.layers import Input, Dropout, Dense, LSTM, TimeDistributed, RepeatVector
+from keras.models import Model
+from keras import regularizers
 from LSTM_custom_models import *
 
 # program control flags
@@ -188,25 +191,30 @@ print("assembly model")
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, LSTM, Dropout, RepeatVector, TimeDistributed
 
-model = Sequential()
-# Units == LSTM input neurons
-model.add(LSTM(128,input_shape=(timesteps,num_features)))
-model.add(Dropout(model_parameters['my_dropout']))
-model.add(RepeatVector(timesteps)) # Repeats the input n times.
-model.add(LSTM(128,return_sequences=True))
-model.add(Dropout(model_parameters['my_dropout']))
-model.add(TimeDistributed(Dense(num_features)))  # apply a layer to every temporal slice of an input.
 
-model.compile(loss=model_parameters['my_loss'],optimizer=model_parameters['my_optimizer'])
-model.summary()
+X = Sequential()
+#
+# X = LSTM(128,input_shape=(timesteps,num_features))(X)
+# X = Dropout(0.2)(X)
+# X = RepeatVector(30)(X)
+# X = LSTM(128,return_sequences=True)(X)
+# X = Dropout(0.2)(X)
+# output = TimeDistributed(Dense(num_features))(X)
+# model_alpha = Model(inputs={timesteps,num_features}, outputs=output)
 
-tf.keras.utils.plot_model(model, to_file=out_dir+timestr+'_my_modelplot.png', show_shapes=True, show_layer_names=True)
+model_alpha = autoencoder_model_alpha(X,X_train)
+
+
+model_alpha.compile(loss=model_parameters['my_loss'],optimizer=model_parameters['my_optimizer'])
+model_alpha.summary()
+
+tf.keras.utils.plot_model(model_alpha, to_file=out_dir+timestr+'_my_modelplot.png', show_shapes=True, show_layer_names=True)
 
 # Task 6: Train the Autoencoder
 
 from tensorflow.keras.callbacks import EarlyStopping
 early_stop = EarlyStopping(monitor=model_parameters['my_monitor'],patience=model_parameters['my_patience'],mode=model_parameters['my_mode']) # if the monitored metric does not change -> exit
-my_history = model.fit(X_train,y_train,epochs=model_parameters['my_epochs'],batch_size=model_parameters['my_batch_size'],validation_split=model_parameters['my_validation_split'],callbacks=[early_stop],shuffle=False)
+my_history = model_alpha.fit(X_train,y_train,epochs=model_parameters['my_epochs'],batch_size=model_parameters['my_batch_size'],validation_split=model_parameters['my_validation_split'],callbacks=[early_stop],shuffle=False)
 #my_history = model.fit(X_train,y_train,epochs=10,batch_size=32,validation_split=0.1,shuffle=False)
 
 # save model while training with checkpoints
@@ -218,7 +226,7 @@ my_history = model.fit(X_train,y_train,epochs=model_parameters['my_epochs'],batc
 # alternative save https://machinelearningmastery.com/save-load-keras-deep-learning-models/
 # https://stackoverflow.com/questions/66827371/difference-between-tf-saved-model-savemodel-path-to-dir-and-tf-keras-model-sa
 
-tf.keras.models.save_model( model, out_dir + timestr +"_my_model.keras",overwrite=True)
+tf.keras.models.save_model(model_alpha, out_dir + timestr +"_my_model.keras",overwrite=True)
 
 with open((out_dir)+timestr+"_my_trainhistory.pckl", 'wb') as file_pi:
     pickle.dump(my_history, file_pi)
