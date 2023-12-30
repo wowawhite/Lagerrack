@@ -1,8 +1,3 @@
-# https://github.com/datablogger-ml/Anomaly-detection-with-Keras/blob/master/Anomaly_Detection_Time_Series.ipynb
-
-# TODO: hamming window
-
-
 # Task 1: Import Libraries
 
 import numpy as np
@@ -10,26 +5,79 @@ import soundfile as sf
 import pandas as pd
 import warnings
 warnings.filterwarnings('ignore')
-import seaborn as sns
 import os
 import pickle
-from matplotlib.pylab import rcParams
-import matplotlib.pyplot as plt
 import plotly.express as px
 import plotly.graph_objects as go
 import tensorflow as tf
 from pathlib import Path
 import platform
+import time
+from sklearn.preprocessing import StandardScaler
+import tkinter as tk
+from tkinter import filedialog
 
+root = tk.Tk()
+root.withdraw()
 
+model_file_path = filedialog.askopenfilename()
+
+# program control flags
 USE_CUDA = True
 USE_DEBUGPRINT = True
+USE_STARTSCRIPT = False
+USE_FFT = False
+parent_dir = Path(__file__).resolve().parent
+out_dir = str(Path.joinpath((parent_dir),"output"))+os.sep
+
+
+
+
+timestr = time.strftime("%Y%m%d-%H%M%S")
+model_parameters = dict(
+    # Model variables are set here:
+    Timestamp = timestr,  # timestring for identification
+    #data preparation
+    sequence_start = 300,  # start second in audio file for  subsequence analysis
+    sequence_stop = 302,  # stop second in audio file for subsequence analysis
+    train_test_split = 0.8,  # 80/20 split for training/testing set
+    time_steps = 30,  # size of sub-sequences for LSTM feeding
+    #model learining
+    my_epochs=30,  # 10
+    my_batch_size=32,  #32
+    my_validation_split=0.2,  # 0.1
+    my_dropout = 0.2,
+    # model quality criteria
+    my_loss='mae',
+    my_optimizer='adam',
+    #anomaly detection
+    my_threshold = 2,
+    # early stop paramerers
+    my_monitor='val_loss',
+    my_patience=3,
+    my_mode='min',
+    # training information
+    my_traintime='',
+    my_cudaversion='',
+    my_trainingsucess=False
+)
+
+def create_sequences(X, y, time_steps=1):
+    Xs, ys = [], []
+    for i in range(len(X) - time_steps):
+        v = X.iloc[i:(i + time_steps)].values
+        Xs.append(v)
+        ys.append(y.iloc[i + time_steps])
+    # TODO: apply hamming window here,
+    # TODO: apply fft for sequence here
+    return np.array(Xs), np.array(ys)
 
 OS_TYPE = os.name
 MACHINE_ID = platform.node()
 print(f"OS_TYPE: {OS_TYPE}")
 print(f"MACHINE_ID: {MACHINE_ID}")
-
+print(f"Working directory: {parent_dir}{os.sep}")
+print(f"Working directory: {out_dir}")
 np.random.seed(1)
 tf.random.set_seed(1)
 if USE_CUDA:
@@ -49,12 +97,10 @@ print('Tensorflow version:', tf.__version__)
 # get parent path
 
 
-def read_flac_to_pandas(filename):
-    parent = Path(__file__).resolve().parent
-
+def read_flac_to_pandas(filename,start_sec=None,stop_sec=None):
     match OS_TYPE:
         case "nt":
-            work_dir = ("https://youtu.be/KSG_-PqzHnM?si=L7j4wEsRZJYoN3aF&t=12")
+            work_dir = ("D:\\wk_messungen\\")
         case "posix":
             if MACHINE_ID=='wowa-desktopL':
                 #myuser = os.environ.get('USER')
@@ -67,15 +113,11 @@ def read_flac_to_pandas(filename):
     file_type = ".flac"
     audiofile_path = ( work_dir + filename + file_type)
 
-    full_signal, sampling_frequency = sf.read(audiofile_path)
-    full_signal.astype(dtype=np.float16)
+    full_signal, sampling_frequency = sf.read(audiofile_path,start=start_sec*384000, stop=stop_sec*384000, dtype="float32")
+    # full_signal.astype(dtype=np.float16)
     signal_length = full_signal.shape[0] / sampling_frequency  # signal length in seconds
-    delta_timestep = signal_length / full_signal.shape[0]
     full_time = np.linspace(0,signal_length,full_signal.shape[0] ,dtype=np.float32)
 
-
-
-    my_array = np.vstack((full_time, full_signal)).T
     if (USE_DEBUGPRINT):
         print(f"Opening file:{audiofile_path}")
         print(f"sampling_frequency = {sampling_frequency}")
@@ -89,169 +131,65 @@ def read_flac_to_pandas(filename):
     #return should be dictionary [date][close]
     return dframe
 
-# Task 2: Load and Inspect the S&P 500 Index Data
-
-#df = pd.read_csv('S&P_500_Index_Data.csv',parse_dates=['date'])
-df = read_flac_to_pandas("visc6_ultrasonic_nok")[(384000*30):(384000*50)]
-
-df.head()
-df.info()
-
-# using Plotly for interactive graphs
-fig = go.Figure()
-fig.add_trace(go.Scatter(x=df['date'],y=df['close'],mode='lines',name='close')) # lines mode for lineplot
-fig.update_layout(title='S&P 500',xaxis_title="Time",yaxis_title='INDEXSP',showlegend=True)
-fig.show()
-
-#Task 3: Data Preprocessing
-
-# split data into train/test set
-train_size = int(len(df) * 0.70) # % size for training set
-test_size = len(df) - train_size
-
-train, test = df.iloc[0:train_size], df.iloc[train_size:]
-
-print("train.shape,test.shape: ",train.shape,test.shape)
-
-from sklearn.preprocessing import StandardScaler
-
-scaler = StandardScaler()
-scaler = scaler.fit(train[['close']])
-
-train['close'] = scaler.transform(train[['close']])
-test['close'] = scaler.transform(test[['close']])
-#
-#Task 4: Create Training and Test Splits
-
-def create_sequences(X, y, time_steps=1):
-    Xs, ys = [], []
-    for i in range(len(X) - time_steps):
-        v = X.iloc[i:(i + time_steps)].values
-        Xs.append(v)
-        ys.append(y.iloc[i + time_steps])
-    # TODO: apply hamming window here
-    return np.array(Xs), np.array(ys)
-
-# TODO: This can be improved by playing around with time_steps size
-time_steps = 30
-X_train, y_train = create_sequences(train[['close']],train['close'],time_steps)
-X_test, y_test = create_sequences(test[['close']],test['close'],time_steps)
-print("X_train.shape,y_train.shape: ", X_train.shape,y_train.shape)
-
-# Task 5: Build an LSTM Autoencoder
-
-timesteps = X_train.shape[1]
-num_features = X_train.shape[2]
-
-# from tensorflow.keras.models import Sequential
-# from tensorflow.keras.layers import Dense, LSTM, Dropout, RepeatVector, TimeDistributed
-#
-# model = Sequential()
-# model.add(LSTM(128,input_shape=(timesteps,num_features))) # TODO: what are 128 units for?
-# model.add(Dropout(0.2))
-# model.add(RepeatVector(timesteps)) # Repeats the input n times.
-# model.add(LSTM(128,return_sequences=True))
-# model.add(Dropout(0.2))
-# model.add(TimeDistributed(Dense(num_features)))  # apply a layer to every temporal slice of an input.
-#
-# model.compile(loss='mae',optimizer='adam')
-# model.summary()
-# tf.keras.utils.plot_model(model, to_file='my_modelplot.png', show_shapes=True, show_layer_names=True)
-
-# Task 6: Train the Autoencoder
-
-# from tensorflow.keras.callbacks import EarlyStopping
-# early_stop = EarlyStopping(monitor='val_loss',patience=3,mode='min') # if the monitored metric does not change wrt to the mode applied
-# my_history = model.fit(X_train,y_train,epochs=10,batch_size=32,validation_split=0.1,callbacks=[early_stop],shuffle=False)
-#my_history = model.fit(X_train,y_train,epochs=10,batch_size=32,validation_split=0.1,shuffle=False)
-
-# save model while training with checkpoints
-# https://keras.io/api/callbacks/model_checkpoint/
-# https://www.tensorflow.org/tutorials/keras/save_and_load
-
-
-# list all data in history# saving model for later use
-# list all data in history
-# alternative save https://machinelearningmastery.com/save-load-keras-deep-learning-models/
-# https://stackoverflow.com/questions/66827371/difference-between-tf-saved-model-savemodel-path-to-dir-and-tf-keras-model-sa
-
-# should print sth like ['accuracy', 'loss', 'val_accuracy', 'val_loss']
-# TODO: BUG: saving model deletes history
-# tf.keras.models.save_model( model, "/home/wowa/PycharmProjects/Lagerrack/my_model.keras",overwrite=True)
-#
-# with open('my_trainhistory', 'wb') as file_pi:
-#     pickle.dump(my_history, file_pi)
-
-# Task 7: Plot Metrics and Evaluate the Model
+# Task 2: Load model
 
 # Load our saved model
-model_loaded = tf.keras.models.load_model("/home/wowa/PycharmProjects/Lagerrack/my_model.keras", compile=True)
-with open('my_trainhistory', "rb") as file_pi:
+parent_dir = Path(__file__).resolve().parent
+out_dir = str(Path.joinpath((parent_dir),"output"))+os.sep
+
+timetag = model_file_path[-30:-15]  # parsing timestamp from keras model filename
+
+history_file_path = out_dir+timetag+"_my_trainhistory.pckl"
+model_loaded = tf.keras.models.load_model(model_file_path, compile=True)
+model_loaded.summary()
+with open(history_file_path, "rb") as file_pi:
     my_history = pickle.load(file_pi)
 
+# Task 3: Load target file
+nok_sequence = read_flac_to_pandas("visc6_ultrasonic_nok",start_sec=8159, stop_sec=8162)
+print("predicting anomaly in NOK sequence")
+nok_sequence_size = int(len(nok_sequence))
+nok_sequence = nok_sequence.iloc[0:nok_sequence_size]
+nok_scaler = StandardScaler()
+nok_scaler = nok_scaler.fit(nok_sequence[['close']])
+nok_sequence['close'] = nok_scaler.transform(nok_sequence[['close']])
+nok_X_train, nok_y_train = create_sequences(nok_sequence[['close']], nok_sequence['close'], model_parameters['time_steps'])
+nok_X_train_pred = model_loaded.predict(nok_X_train)
+nok_mae_loss = pd.DataFrame(np.mean(np.abs(nok_X_train_pred - nok_X_train),axis=1),columns=['Error'])
 
-print("my_history.history.keys()\n",my_history.history.keys())  # prints dict_keys(['loss', 'val_loss'])
-print(f"model hist is : \n {my_history.history}")
-
-err = pd.DataFrame(my_history.history)
-err.plot()
-plt.xlabel('Number of Epochs')
-plt.ylabel('Loss')
-
-# Threshold for anomaly marker TODO: play around to improve
-threshold = 0.95
-
-# Calculating the mae for training data
-sns.set(style='whitegrid', palette='muted')
-rcParams['figure.figsize'] = 16, 6 # set figsize for all images
-
-# TODO: bug when plotting with seaborn. Window is not shown
-X_train_pred = model_loaded.predict(X_train)
-train_mae_loss = pd.DataFrame(np.mean(np.abs(X_train_pred - X_train),axis=1),columns=['Error'])
-sns.distplot(train_mae_loss,bins=50,kde=True)  # Plot histogram of training losses
-
-X_test_pred = model_loaded.predict(X_test)
-test_mae_loss = np.mean(np.abs(X_test_pred - X_test),axis=1)
-sns.distplot(test_mae_loss, bins=50, kde=True)  # Plot histogram of test losses / KDE=kernel density estimation
-
-#Task 8: Detect Anomalies in the S&P 500 Index Data
-
-test_score_df = pd.DataFrame(test[time_steps:])
-test_score_df['loss'] = test_mae_loss
-test_score_df['threshold'] = threshold
+#Task 8: Detect Anomalies in Data
+test_score_df = pd.DataFrame(nok_sequence[model_parameters['time_steps']:])
+test_score_df['loss'] = nok_mae_loss
+test_score_df['threshold'] = model_parameters['my_threshold']
 test_score_df['anomaly'] = test_score_df['loss'] > test_score_df['threshold']  # this yields T/F but could be adapted to anomaly score
-test_score_df['close'] = test[time_steps:]['close']
+test_score_df['close'] = nok_sequence[model_parameters['time_steps']:]['close']
 test_score_df.head()
 test_score_df.tail()
+nok_anomalies = test_score_df[test_score_df['anomaly'] == True]
+nok_anomalies.head()
 
+nok_myfresh_x = nok_sequence[model_parameters['time_steps']:]['date']
+nok_myfresh_y = nok_scaler.inverse_transform(nok_sequence[model_parameters['time_steps']:]['close'].values.reshape(-1, 1))
 
+print("shapes testdata x,y,:", nok_myfresh_x.shape, nok_myfresh_y.shape)
+nok_myotherfresh_x = nok_anomalies['date']
+nok_myotherfresh_y = nok_scaler.inverse_transform(nok_anomalies['close'].values.reshape(-1, 1))
+print("shapes anomalies x,y,:", nok_myotherfresh_x.shape, nok_myotherfresh_y.shape)
+# plot original nok time series
 fig = go.Figure()
-fig.add_trace(go.Scatter(x=test[time_steps:]['date'],y=test_score_df['loss'],mode='lines',name='Test Loss'))
-fig.add_trace(go.Scatter(x=test[time_steps:]['date'],y=test_score_df['threshold'],mode='lines',name='Threshold'))
-fig.update_layout(xaxis_title='Time',yaxis_title='Loss',showlegend=True)
+fig.add_trace(go.Scatter(x=nok_myfresh_x, y=nok_myfresh_y[:, 0], mode='lines', name='audio data points'))
+fig.update_layout(title='Audio spectrum with NOK anomalies - ' + timetag, xaxis_title='Time',
+                  yaxis_title='Audio spectrum', showlegend=True)
+fig.write_html(out_dir + timetag + "_my_nok_timeseries.html")
 fig.show()
 
-anomalies = test_score_df[test_score_df['anomaly'] == True]
-anomalies.head()
-
+# plot anomaly datapoints over original data
 fig = go.Figure()
-
-myfresh_x = test[time_steps:]['date']
-#myfresh_y = test[time_steps:]['close']
-myfresh_y = scaler.inverse_transform(test[time_steps:]['close'].values.reshape(-1,1))
-
-print("shapes testdata x,y,:", myfresh_x.shape, myfresh_y.shape)
-# this should plot the original test data
-fig.add_trace(go.Scatter(x=myfresh_x, y=myfresh_y[:,0], mode='lines',name='Close Price'))
-
-myotherfresh_x = anomalies['date']
-#myotherfresh_y = anomalies['close']
-myotherfresh_y = scaler.inverse_transform(anomalies['close'].values.reshape(-1,1))
-print("shapes anomalies x,y,:", myotherfresh_x.shape, myotherfresh_y.shape)
-# this should plot anomaly datapoints
-fig.add_trace(go.Scatter(x=myotherfresh_x,y=myotherfresh_y[:,0],mode='markers',name='Anomaly'))
-
-fig.update_layout(title='S&P 500 with Anomalies',xaxis_title='Time',yaxis_title='INDEXSP',showlegend=True)
+fig.add_trace(go.Scatter(x=nok_myfresh_x, y=nok_myfresh_y[:, 0], mode='lines', name='audio data points'))
+fig.add_trace(go.Scatter(x=nok_myotherfresh_x, y=nok_myotherfresh_y[:, 0], mode='markers', name='Anomaly'))
+fig.update_layout(title='Audio spectrum with NOK anomalies - ' + timetag, xaxis_title='Time',
+                  yaxis_title='Audio spectrum', showlegend=True)
+fig.write_html(out_dir + timetag + "_my_nok_anomalies.html")
 fig.show()
 
-print("ok")
+print("done.EOF")
