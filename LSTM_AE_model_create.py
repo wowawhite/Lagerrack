@@ -2,8 +2,6 @@
 
 # TODO: apply hamming window
 # TODO: apply fft for sequence
-# TODO: change to plotly
-# TODO: implement custom models
 # TODO: implement easy hyperparameter tuning (with json?)
 # TODO: Validate detector with nok audiofile
 
@@ -14,7 +12,6 @@ import soundfile as sf
 import pandas as pd
 import warnings
 warnings.filterwarnings('ignore')
-import seaborn as sns
 import os
 import pickle
 from matplotlib.pylab import rcParams
@@ -26,15 +23,19 @@ from pathlib import Path
 import platform
 import time
 import json
+from sklearn.preprocessing import StandardScaler
 from keras.layers import Input, Dropout, Dense, LSTM, TimeDistributed, RepeatVector
 from keras.models import Model
 from keras import regularizers
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense, LSTM, Dropout, RepeatVector, TimeDistributed
 from LSTM_custom_models import *
 
 # program control flags
 USE_CUDA = True
 USE_DEBUGPRINT = True
 USE_STARTSCRIPT = False
+USE_FFT = False
 parent_dir = Path(__file__).resolve().parent
 out_dir = str(Path.joinpath((parent_dir),"output"))+os.sep
 
@@ -42,14 +43,14 @@ out_dir = str(Path.joinpath((parent_dir),"output"))+os.sep
 timestr = time.strftime("%Y%m%d-%H%M%S")
 model_parameters = dict(
     # Model variables are set here:
-    Timestamp = timestr,
+    Timestamp = timestr,  # timestring for identification
     #data preparation
-    sequence_start = 30,
-    sequence_stop = 32,
+    sequence_start = 300,  # start second in audio file for  subsequence analysis
+    sequence_stop = 302,  # stop second in audio file for subsequence analysis
     train_test_split = 0.8,  # 80/20 split for training/testing set
     time_steps = 30,  # size of sub-sequences for LSTM feeding
     #model learining
-    my_epochs=4,  # 10
+    my_epochs=30,  # 10
     my_batch_size=32,  #32
     my_validation_split=0.2,  # 0.1
     my_dropout = 0.2,
@@ -57,7 +58,7 @@ model_parameters = dict(
     my_loss='mae',
     my_optimizer='adam',
     #anomaly detection
-    my_threshold = 2.0,
+    my_threshold = 2,
     # early stop paramerers
     my_monitor='val_loss',
     my_patience=3,
@@ -95,7 +96,7 @@ print('Tensorflow version:', tf.__version__)
 def read_flac_to_pandas(filename,start_sec=None,stop_sec=None):
     match OS_TYPE:
         case "nt":
-            work_dir = ("https://youtu.be/KSG_-PqzHnM?si=L7j4wEsRZJYoN3aF&t=12")
+            work_dir = ("D:\\wk_messungen\\")
         case "posix":
             if MACHINE_ID=='wowa-desktopL':
                 #myuser = os.environ.get('USER')
@@ -130,8 +131,8 @@ def read_flac_to_pandas(filename,start_sec=None,stop_sec=None):
 # Task 2: Load and Inspect the S&P 500 Index Data
 
 #df = pd.read_csv('S&P_500_Index_Data.csv',parse_dates=['date'])
-# df = read_flac_to_pandas("visc6_ultrasonic_ok", model_parameters['sequence_start'], model_parameters['sequence_stop'])  # [(384000*sequence_start):(384000*sequence_stop)]
-df = read_flac_to_pandas("visc6_ultrasonic_ok", 1, 10)  # [(384000*sequence_start):(384000*sequence_stop)]
+df = read_flac_to_pandas("visc6_ultrasonic_ok", model_parameters['sequence_start'], model_parameters['sequence_stop'])  # [(384000*sequence_start):(384000*sequence_stop)]
+#df = read_flac_to_pandas("visc6_ultrasonic_ok", 1, 10)  # [(384000*sequence_start):(384000*sequence_stop)]
 
 
 df.head()
@@ -155,7 +156,7 @@ train, test = df.iloc[0:train_size], df.iloc[train_size:]  # create index for tr
 
 print("train.shape,test.shape: ",train.shape,test.shape)
 
-from sklearn.preprocessing import StandardScaler
+
 
 scaler = StandardScaler()
 scaler = scaler.fit(train[['close']])
@@ -188,8 +189,7 @@ num_features = X_train.shape[2]
 
 
 print("assembly model")
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, LSTM, Dropout, RepeatVector, TimeDistributed
+
 
 
 X = Sequential()
@@ -221,11 +221,6 @@ my_history = model_alpha.fit(X_train,y_train,epochs=model_parameters['my_epochs'
 # https://keras.io/api/callbacks/model_checkpoint/
 # https://www.tensorflow.org/tutorials/keras/save_and_load
 
-# list all data in history# saving model for later use
-# list all data in history
-# alternative save https://machinelearningmastery.com/save-load-keras-deep-learning-models/
-# https://stackoverflow.com/questions/66827371/difference-between-tf-saved-model-savemodel-path-to-dir-and-tf-keras-model-sa
-
 tf.keras.models.save_model(model_alpha, out_dir + timestr +"_my_model.keras",overwrite=True)
 
 with open((out_dir)+timestr+"_my_trainhistory.pckl", 'wb') as file_pi:
@@ -238,25 +233,21 @@ model_loaded = tf.keras.models.load_model((out_dir) + timestr+"_my_model.keras",
 with open((out_dir)+timestr+"_my_trainhistory.pckl", "rb") as file_pi:
     my_history = pickle.load(file_pi)
 
-
 print("my_history.history.keys()\n",my_history.history.keys())  # prints dict_keys(['loss', 'val_loss'])
 print(f"model history is : \n {my_history.history}")
 
 err = pd.DataFrame(my_history.history)
-err.plot()
-plt.xlabel('Number of Epochs')
-plt.ylabel('Loss')
+# err.plot()
+# plt.xlabel('Number of Epochs')
+# plt.ylabel('Loss')
 
-print("predicting anomaly with")
+print("predicting anomaly")
 X_train_pred = model_loaded.predict(X_train)
 train_mae_loss = pd.DataFrame(np.mean(np.abs(X_train_pred - X_train),axis=1),columns=['Error'])
-
 X_test_pred = model_loaded.predict(X_test)
 test_mae_loss = np.mean(np.abs(X_test_pred - X_test),axis=1)
 
-
-#Task 8: Detect Anomalies in the S&P 500 Index Data
-
+#Task 8: Detect Anomalies in Data
 test_score_df = pd.DataFrame(test[model_parameters['time_steps']:])
 test_score_df['loss'] = test_mae_loss
 test_score_df['threshold'] = model_parameters['my_threshold']
@@ -265,44 +256,46 @@ test_score_df['close'] = test[model_parameters['time_steps']:]['close']
 test_score_df.head()
 test_score_df.tail()
 
-
+# this prints test loss over time
 fig = go.Figure()
 fig.add_trace(go.Scatter(x=test[model_parameters['time_steps']:]['date'],y=test_score_df['loss'],mode='lines',name='Test Loss'))
 fig.add_trace(go.Scatter(x=test[model_parameters['time_steps']:]['date'],y=test_score_df['threshold'],mode='lines',name='Threshold'))
 fig.update_layout(xaxis_title='Time',yaxis_title='Loss',showlegend=True)
-fig.write_html(out_dir+timestr+"_plot_loss.html")
-#fig.show()
+fig.write_html(out_dir+timestr+"_my_loss_time.html")
+fig.show()
 
 # marking anomaly true/false depending on test score
 anomalies = test_score_df[test_score_df['anomaly'] == True]
 anomalies.head()
 
-fig = go.Figure()
 myfresh_x = test[model_parameters['time_steps']:]['date']
 #myfresh_y = test[time_steps:]['close']
 myfresh_y = scaler.inverse_transform(test[model_parameters['time_steps']:]['close'].values.reshape(-1,1))
 
 print("shapes testdata x,y,:", myfresh_x.shape, myfresh_y.shape)
-# this should plot the original test data
-fig.add_trace(go.Scatter(x=myfresh_x, y=myfresh_y[:,0], mode='lines',name='Close Price'))
-
 myotherfresh_x = anomalies['date']
 #myotherfresh_y = anomalies['close']
 myotherfresh_y = scaler.inverse_transform(anomalies['close'].values.reshape(-1,1))
 print("shapes anomalies x,y,:", myotherfresh_x.shape, myotherfresh_y.shape)
-# this should plot anomaly datapoints
-fig.add_trace(go.Scatter(x=myotherfresh_x,y=myotherfresh_y[:,0],mode='markers',name='Anomaly'))
 
-fig.update_layout(title='S&P 500 with Anomalies',xaxis_title='Time',yaxis_title='INDEXSP',showlegend=True)
+# this should plot anomaly datapoints over original data
+fig = go.Figure()
+fig.add_trace(go.Scatter(x=myfresh_x, y=myfresh_y[:,0], mode='lines',name='Close Price'))
+fig.add_trace(go.Scatter(x=myotherfresh_x,y=myotherfresh_y[:,0],mode='markers',name='Anomaly'))
+fig.update_layout(title='Audio spectrum with Anomalies',xaxis_title='Time',yaxis_title='Audio spectrum',showlegend=True)
 fig.write_html(out_dir+timestr+"_my_anomalies.html")
 fig.show()
 
-# TODO: drop seaborn and port to plotly html
-# Plotting the mae for training data
-sns.set(style='whitegrid', palette='muted')
-rcParams['figure.figsize'] = 16, 6 # set figsize for all images
-sns.distplot(train_mae_loss,bins=50,kde=True)  # Plot histogram of training losses
-sns.distplot(test_mae_loss, bins=50, kde=True)  # Plot histogram of test losses / KDE=kernel density estimation
-plt.savefig(out_dir+timestr+"_my_errorplot.png")
-plt.show()
+# this prints test loss over epochs
+fig = go.Figure()
+loss_ticks = np.arange(1,len(my_history.history['loss']))
+val_loss_ticks = np.arange(1,len(my_history.history['val_loss']))
+# fig.add_trace(go.Scatter(x=model_parameters["my_epochs"],y=train_mae_loss['Error'],mode='lines',name='train loss',))
+# fig.add_trace(go.Scatter(x=model_parameters["my_epochs"],y=test_mae_loss['Error'],mode='lines',name='test loss'))
+fig.add_trace(go.Scatter(y=my_history.history['loss'], x=loss_ticks,mode='lines',name='train loss'))
+fig.add_trace(go.Scatter(y=my_history.history['val_loss'], x=val_loss_ticks,mode='lines',name='test loss'))
+fig.update_layout(title='Audio spectrum with Anomalies',xaxis_title='epochs',yaxis_title='loss',showlegend=True)
+fig.write_html(out_dir+timestr+"_my_loss_epochs.html")
+fig.show()
+
 print("done.EOF")
