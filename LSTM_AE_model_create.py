@@ -44,12 +44,12 @@ model_parameters = dict(
     sequence_start=300,  # start second in audio file for  subsequence analysis
     sequence_stop=304,  # stop second in audio file for subsequence analysis
     train_test_split=0.8,  # 80/20 split for training/testing set
-    time_steps=32,  # size of sub-sequences for LSTM feeding
+    time_steps=30,  # 30 size of sub-sequences for LSTM feeding
     # model learining
     my_epochs=50,  # 10
-    my_batch_size=32,  # 32
+    my_batch_size=32,  # 32  dimensions of time steps for 2d input pattern
     my_validation_split=0.2,  # 0.1
-    # my_dropout=0.2, #  model-depending, not global
+    # my_dropout=0.2, #  model-depending, not global. likely not useful for sequences
     # model quality criteria
     my_loss='mae',
     my_optimizer='adam',
@@ -194,7 +194,7 @@ num_features = X_train.shape[2]
 print("assembly model")
 X = Sequential()
 # TODO: select model here
-my_model = LSTM_AE_model_alpha3(X, X_train)
+my_model = LSTM_AE_model_alpha2(X, X_train)
 my_model.compile(loss=model_parameters['my_loss'], optimizer=model_parameters['my_optimizer'])
 my_model.summary()
 
@@ -205,7 +205,7 @@ tf.keras.utils.plot_model(my_model, show_shapes=True, to_file=out_dir + timestr 
                           show_layer_names=True)
 
 # Task 6: Train the Autoencoder
-
+# https://machinelearningmastery.com/how-to-stop-training-deep-neural-networks-at-the-right-time-using-early-stopping/
 early_stop = EarlyStopping(monitor=model_parameters['my_monitor'], patience=model_parameters['my_patience'],
                            mode=model_parameters['my_mode'])  # if the monitored metric does not change -> exit
 my_history = my_model.fit(X_train, y_train, epochs=model_parameters['my_epochs'],
