@@ -89,7 +89,7 @@ def LSTM_AE_model_epsilon1(model, inputs, hyperparameters=None):
     # encoder stuff: input (None, 4, feats), output (None, 16)
     timesteps = inputs.shape[1]
     num_features = inputs.shape[2]
-    model.add(Input(shape=(timesteps, 1),name='LSTM_AE_model_epsilon1'))
+    model.add(Input(shape=(timesteps, num_features),name='LSTM_AE_model_epsilon1'))
     model.add(LSTM(100, activation='relu'))
     # define reconstruct decoder
     model.add(RepeatVector(timesteps))

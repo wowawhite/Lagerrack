@@ -46,12 +46,12 @@ model_parameters = dict(
     my_epochs=30,  # 10
     my_batch_size=32,  #32
     my_validation_split=0.2,  # 0.1
-    my_dropout = 0.2,
+    #my_dropout = 0.2, -> model-individual
     # model quality criteria
     my_loss='mae',
     my_optimizer='adam',
     #anomaly detection
-    my_threshold = 2,
+    my_threshold = 4,  # -> anomaly detection sensitivity
     # early stop paramerers
     my_monitor='val_loss',
     my_patience=3,
