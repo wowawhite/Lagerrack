@@ -89,15 +89,32 @@ def LSTM_AE_model_epsilon1(model, inputs, hyperparameters=None):
     # encoder stuff: input (None, 4, feats), output (None, 16)
     timesteps = inputs.shape[1]
     num_features = inputs.shape[2]
-    model.add(Input(shape=(timesteps, num_features),name='LSTM_AE_model_epsilon1'))
-    model.add(LSTM(100, activation='relu'))
-    # define reconstruct decoder
-    model.add(RepeatVector(timesteps))
-    model.add(LSTM(100, activation='relu', return_sequences=True))
-    model.add(TimeDistributed(Dense(1)))
-    # define predict decoder
-    model.add(RepeatVector(num_features))
-    model.add(LSTM(100, activation='relu', return_sequences=True))
-    model.add(TimeDistributed(Dense(1)))
+    seq_out = inputs[:, 1:, :]
+    n_out = timesteps-1
+    # model.add(Input(shape=(timesteps, 1),name='LSTM_AE_model_epsilon1'))
+    # model.add(LSTM(100, activation='relu',return_sequences=True))
+    # # define reconstruct decoder
+    # model.add(RepeatVector(1))
+    # model.add(LSTM(100, activation='relu', return_sequences=True))
+    # model.add(TimeDistributed(Dense(1)))
+    # # define predict decoder
+    # model.add(RepeatVector(num_features))
+    # model.add(LSTM(100, activation='relu', return_sequences=True))
+    # model.add(TimeDistributed(Dense(1)))
     # tie it together
+
+    # define encoder
+    visible = Input(shape=(timesteps,1))
+    encoder = LSTM(100, activation='relu')(visible)
+    # define reconstruct decoder
+    decoder1 = RepeatVector(timesteps)(encoder)
+    decoder1 = LSTM(100, activation='relu', return_sequences=True)(decoder1)
+    decoder1 = TimeDistributed(Dense(1))(decoder1)
+    # define predict decoder
+    decoder2 = RepeatVector(n_out)(encoder)
+    decoder2 = LSTM(100, activation='relu', return_sequences=True)(decoder2)
+    decoder2 = TimeDistributed(Dense(1))(decoder2)
+    # tie it together
+    model = Model(inputs=visible, outputs=[decoder1, decoder2])
+
     return model
