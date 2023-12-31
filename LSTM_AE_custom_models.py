@@ -48,10 +48,10 @@ def LSTM_AE_model_alpha4(model, inputs, hyperparameters=None):
     num_features = inputs.shape[2]
     # model.name="LSTM_AE_model_alpha3"
     model.add(Input(shape=(timesteps, num_features)))
-    model.add(LSTM(128, activation='tf.keras.activations.softmax',return_sequences=False))
+    model.add(LSTM(128, activation='softmax',return_sequences=False))
     model.add(Dropout(0.2))
     model.add(RepeatVector(30))
-    model.add(LSTM(128, activation='tf.keras.activations.softmax', return_sequences=True))
+    model.add(LSTM(128, activation='softmax', return_sequences=True))
     model.add(Dropout(0.2))
     model.add(TimeDistributed(Dense(num_features)))
     #model = Model(inputs=inputs, outputs=output)
