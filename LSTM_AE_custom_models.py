@@ -6,7 +6,7 @@ import sys
 def LSTM_AE_model_alpha1(model, inputs, hyperparameters=None):
     timesteps = inputs.shape[1]
     num_features = inputs.shape[2]
-    model.name = "LSTM_AE_model_alpha1"
+    # model.name ="LSTM_AE_model_alpha1"
     model.add(LSTM(128,input_shape=(timesteps,num_features)))
     model.add(Dropout(0.2))
     model.add(RepeatVector(30))
@@ -19,7 +19,7 @@ def LSTM_AE_model_alpha1(model, inputs, hyperparameters=None):
 def LSTM_AE_model_alpha2(model, inputs, hyperparameters=None):
     timesteps = inputs.shape[1]
     num_features = inputs.shape[2]
-    model.name = "LSTM_AE_model_alpha2"
+    # model.name ="LSTM_AE_model_alpha2"
     model.add(Input(shape=(timesteps, num_features)))
     model.add(LSTM(128, return_sequences=False))
     model.add(Dropout(0.2))
@@ -60,7 +60,7 @@ def LSTM_AE_model_alpha4(model, inputs, hyperparameters=None):
 def LSTM_AE_model_beta1(model, inputs, hyperparameters=None):
     timesteps = inputs.shape[1]
     num_features = inputs.shape[2]
-    model.name = "LSTM_AE_model_beta1"
+    # model.name ="LSTM_AE_model_beta1"
     model.add(Input(shape=(timesteps, num_features)))
     model.add(LSTM(16, activation='relu', return_sequences=True,kernel_regularizer=regularizers.l2(0.00)))
     model.add(LSTM(4, activation='relu', return_sequences=False))
@@ -75,7 +75,7 @@ def LSTM_AE_model_gamma1(model, inputs, hyperparameters=None):
     # encoder stuff: input (None, 4, feats), output (None, 16)
     timesteps = inputs.shape[1]
     num_features = inputs.shape[2]
-    model.name = "LSTM_AE_model_gamma1"
+    # model.name ="LSTM_AE_model_gamma1"
     model.add(Input(shape=(timesteps, num_features)))
     model.add(LSTM(10, return_sequences=True))
     model.add(LSTM(6, activation='relu', return_sequences=True))
@@ -90,7 +90,7 @@ def LSTM_AE_model_delta1(model, inputs, hyperparameters=None):
     # encoder stuff: input (None, 4, feats), output (None, 16)
     timesteps = inputs.shape[1]
     num_features = inputs.shape[2]
-    model.name = "LSTM_AE_model_delta1"
+    # model.name ="LSTM_AE_model_delta1"
     model.add(Input(shape=(timesteps, num_features)))
     model.add(LSTM(64, kernel_initializer='he_uniform', return_sequences=True, name='encoder_L1'))
     model.add(LSTM(32, kernel_initializer='he_uniform', return_sequences=True, name='encoder_L2'))
