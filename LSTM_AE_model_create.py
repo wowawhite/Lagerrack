@@ -91,12 +91,17 @@ if USE_CUDA:
     gpu_devices = tf.config.experimental.list_physical_devices('GPU')
     for device in gpu_devices:
         tf.config.experimental.set_memory_growth(device, True)
-        model_parameters['my_cudaversion'] = feedback_cuda
+        if(not(gpu_devices)):
+            feedback_cuda = "Using CPU only"
+        else:
+            model_parameters['my_cudaversion'] = feedback_cuda
+
     print(f"CUDA driver version is {feedback_cuda}")
     print("Cuda devices available:", tf.config.list_physical_devices('GPU'))
 else:
     print(f"Using CPU only")
     os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
+    feedback_cuda="Using CPU only"
 print('Tensorflow version:', tf.__version__)
 
 model_parameters.update({
@@ -189,7 +194,7 @@ num_features = X_train.shape[2]
 print("assembly model")
 X = Sequential()
 # TODO: select model here
-my_model = LSTM_AE_model_epsilon1(X, X_train)
+my_model = LSTM_AE_model_alpha3(X, X_train)
 my_model.compile(loss=model_parameters['my_loss'], optimizer=model_parameters['my_optimizer'])
 my_model.summary()
 

@@ -84,8 +84,10 @@ def LSTM_AE_model_delta1(model, inputs, hyperparameters=None):
     return model
 
 # https://machinelearningmastery.com/lstm-autoencoders/
-# TODO: this one is incomplete
+# TODO: this one is incomplete and thows error, see:
+# ValueError: setting an array element with a sequence. The requested array has an inhomogeneous shape after 2 dimensions. The detected shape was (2, 1228768) + inhomogeneous part.
 def LSTM_AE_model_epsilon1(model, inputs, hyperparameters=None):
+
     # encoder stuff: input (None, 4, feats), output (None, 16)
     timesteps = inputs.shape[1]
     num_features = inputs.shape[2]
@@ -116,5 +118,4 @@ def LSTM_AE_model_epsilon1(model, inputs, hyperparameters=None):
     decoder2 = TimeDistributed(Dense(1))(decoder2)
     # tie it together
     model = Model(inputs=visible, outputs=[decoder1, decoder2])
-
     return model
