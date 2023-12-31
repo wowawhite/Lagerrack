@@ -41,12 +41,12 @@ model_parameters = dict(
     # Model variables are set here:
     Timestamp=timestr,  # timestring for identification
     # data preparation
-    sequence_start=300,  # start second in audio file for  subsequence analysis
-    sequence_stop=304,  # stop second in audio file for subsequence analysis
+    sequence_start=408,  # start second in audio file for  subsequence analysis
+    sequence_stop=412,  # stop second in audio file for subsequence analysis
     train_test_split=0.8,  # 80/20 split for training/testing set
     time_steps=30,  # 30 size of sub-sequences for LSTM feeding
     # model learining
-    my_epochs=50,  # 10
+    my_epochs=20,  # 10
     my_batch_size=32,  # 32  dimensions of time steps for 2d input pattern
     my_validation_split=0.2,  # 0.1
     # my_dropout=0.2, #  model-depending, not global. likely not useful for sequences
@@ -54,7 +54,7 @@ model_parameters = dict(
     my_loss='mae',
     my_optimizer='adam',
     # anomaly detection
-    my_threshold=2.2,
+    my_threshold=3.5,  # -> anomaly detection sensitivity, very important! smaller number==more sensitive to noise
     # early stop paramerers
     my_monitor='val_loss',
     my_patience=3,
