@@ -32,7 +32,7 @@ def LSTM_AE_model_alpha2(model, inputs, hyperparameters=None):
 def LSTM_AE_model_alpha3(model, inputs, hyperparameters=None):
     timesteps = inputs.shape[1]
     num_features = inputs.shape[2]
-    model.name="LSTM_AE_model_alpha3"
+    # model.name ="LSTM_AE_model_alpha3"
     model.add(Input(shape=(timesteps, num_features)))
     model.add(LSTM(128, activation='relu',return_sequences=False))
     model.add(Dropout(0.2))
@@ -46,7 +46,7 @@ def LSTM_AE_model_alpha3(model, inputs, hyperparameters=None):
 def LSTM_AE_model_alpha4(model, inputs, hyperparameters=None):
     timesteps = inputs.shape[1]
     num_features = inputs.shape[2]
-    model.name="LSTM_AE_model_alpha3"
+    # model.name="LSTM_AE_model_alpha3"
     model.add(Input(shape=(timesteps, num_features)))
     model.add(LSTM(128, activation='tf.keras.activations.softmax',return_sequences=False))
     model.add(Dropout(0.2))
@@ -123,7 +123,7 @@ def LSTM_AE_model_epsilon1(model, inputs, hyperparameters=None):
     # model.add(TimeDistributed(Dense(1)))
 
     # define encoder
-    model.name="LSTM_AE_model_epsilon1"
+    # model.name="LSTM_AE_model_epsilon1"
     visible = Input(shape=(timesteps,1))
     encoder = LSTM(100, activation='relu')(visible)
     # define reconstruct decoder
@@ -155,7 +155,7 @@ def LSTM_AE_model_epsilon2(model, inputs, hyperparameters=None):
     # model.add(TimeDistributed(Dense(1)))
 
     # define encoder
-    model.name="LSTM_AE_model_epsilon2"
+    # model.name="LSTM_AE_model_epsilon2"
     visible = Input(shape=(timesteps,num_features))
     encoder = LSTM(100, activation='tf.keras.activations.softmax')(visible)
     # define reconstruct decoder
