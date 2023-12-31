@@ -54,7 +54,7 @@ model_parameters = dict(
     my_loss='mae',
     my_optimizer='adam',
     # anomaly detection
-    my_threshold=2.5,
+    my_threshold=2.2,
     # early stop paramerers
     my_monitor='val_loss',
     my_patience=3,
@@ -117,7 +117,7 @@ def read_flac_to_pandas(filename, start_sec=None, stop_sec=None):
         case "posix":
             if MACHINE_ID == 'wowa-desktopL':
                 # myuser = os.environ.get('USER')
-                work_dir = "//media//wowa//Windows Data//wk_messungen//"
+                work_dir = "//mnt/Windows_data//wk_messungen//"
             elif MACHINE_ID == "wowa-backend":
                 work_dir = "//mnt//datadrive//wk_messungen//"
 
