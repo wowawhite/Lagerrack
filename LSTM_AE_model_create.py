@@ -168,7 +168,7 @@ test['close'] = scaler.transform(test[['close']])
 def create_sequences(x_sequence, y, time_steps=1):
     xs, ys = [], []
     for i in range(len(x_sequence) - time_steps):
-        v = X.iloc[i:(i + time_steps)].values
+        v = x_sequence.iloc[i:(i + time_steps)].values
         xs.append(v)
         ys.append(y.iloc[i + time_steps])
     # TODO: apply hamming window here,
