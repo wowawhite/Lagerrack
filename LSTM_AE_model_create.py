@@ -46,7 +46,7 @@ model_parameters = dict(
     train_test_split=0.8,  # 80/20 split for training/testing set
     time_steps=30,  # 30 size of sub-sequences for LSTM feeding
     # model learining
-    my_epochs=8,  # 10
+    my_epochs=20,  # 10
     my_batch_size=32,  # 32  dimensions of time steps for 2d input pattern
     my_validation_split=0.2,  # 0.1
     # my_dropout=0.2, #  model-depending, not global. likely not useful for sequences
@@ -194,7 +194,7 @@ num_features = X_train.shape[2]
 print("assembly model")
 X = Sequential()
 # TODO: select model here
-my_model = LSTM_AE_model_alpha4(X, X_train)
+my_model = LSTM_AE_model_alpha2(X, X_train)
 my_model.compile(loss=model_parameters['my_loss'], optimizer=model_parameters['my_optimizer'])
 my_model.summary()
 
