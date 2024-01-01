@@ -57,6 +57,7 @@ def LSTM_AE_model_alpha4(model, inputs, hyperparameters=None):
     #model = Model(inputs=inputs, outputs=output)
     return model
 
+# https://github.com/Jithsaavvy/Explaining-deep-learning-models-for-detecting-anomalies-in-time-series-data-RnD-project
 def LSTM_AE_model_beta1(model, inputs, hyperparameters=None):
     timesteps = inputs.shape[1]
     num_features = inputs.shape[2]
@@ -97,7 +98,7 @@ def LSTM_AE_model_gamma1(model, inputs, hyperparameters=None):
     model.add(Dense(10, kernel_initializer='glorot_normal', activation='relu'))
     model.add(Dense(10, kernel_initializer='glorot_normal', activation='relu'))
     model.add(Dense(1))
-    return
+    return model
 
 def LSTM_AE_model_gamma2(model, inputs, hyperparameters=None):
     # encoder stuff: input (None, 4, feats), output (None, 16)
@@ -110,8 +111,8 @@ def LSTM_AE_model_gamma2(model, inputs, hyperparameters=None):
     model.add(LSTM(1, activation='softmax'))
     model.add(Dense(10, kernel_initializer='glorot_normal', activation='relu'))
     model.add(Dense(10, kernel_initializer='glorot_normal', activation='relu'))
-    model.add(Dense(1))
-    return
+    model.add((Dense(1)))
+    return model
 # https://github.com/thomashuang02/LSTM-Autoencoder-for-Time-Series-Anomaly-Detection/blob/main/lstm_autoencoder.ipynb
 def LSTM_AE_model_delta1(model, inputs, hyperparameters=None):
     # encoder stuff: input (None, 4, feats), output (None, 16)
