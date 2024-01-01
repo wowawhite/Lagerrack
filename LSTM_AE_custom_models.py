@@ -70,6 +70,20 @@ def LSTM_AE_model_beta1(model, inputs, hyperparameters=None):
     model.add(TimeDistributed(Dense(num_features)))
     return model
 
+
+def LSTM_AE_model_beta2(model, inputs, hyperparameters=None):
+    timesteps = inputs.shape[1]
+    num_features = inputs.shape[2]
+    # model.name ="LSTM_AE_model_beta1"
+    model.add(Input(shape=(timesteps, num_features)))
+    model.add(LSTM(16, activation='softmax', return_sequences=True,kernel_regularizer=regularizers.l2(0.00)))
+    model.add(LSTM(4, activation='softmax', return_sequences=False))
+    model.add(RepeatVector(timesteps))
+    model.add(LSTM(4, activation='softmax', return_sequences=True))
+    model.add(LSTM(16, activation='softmax', return_sequences=True))
+    model.add(TimeDistributed(Dense(num_features)))
+    return model
+
 # https://www.kaggle.com/code/dimitreoliveira/time-series-forecasting-with-lstm-autoencoders
 def LSTM_AE_model_gamma1(model, inputs, hyperparameters=None):
     # encoder stuff: input (None, 4, feats), output (None, 16)
@@ -85,6 +99,19 @@ def LSTM_AE_model_gamma1(model, inputs, hyperparameters=None):
     model.add(Dense(1))
     return
 
+def LSTM_AE_model_gamma2(model, inputs, hyperparameters=None):
+    # encoder stuff: input (None, 4, feats), output (None, 16)
+    timesteps = inputs.shape[1]
+    num_features = inputs.shape[2]
+    # model.name ="LSTM_AE_model_gamma1"
+    model.add(Input(shape=(timesteps, num_features)))
+    model.add(LSTM(10, return_sequences=True))
+    model.add(LSTM(6, activation='softmax', return_sequences=True))
+    model.add(LSTM(1, activation='softmax'))
+    model.add(Dense(10, kernel_initializer='glorot_normal', activation='relu'))
+    model.add(Dense(10, kernel_initializer='glorot_normal', activation='relu'))
+    model.add(Dense(1))
+    return
 # https://github.com/thomashuang02/LSTM-Autoencoder-for-Time-Series-Anomaly-Detection/blob/main/lstm_autoencoder.ipynb
 def LSTM_AE_model_delta1(model, inputs, hyperparameters=None):
     # encoder stuff: input (None, 4, feats), output (None, 16)
