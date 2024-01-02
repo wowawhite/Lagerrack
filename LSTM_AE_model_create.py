@@ -197,7 +197,7 @@ try:
     print("assembly model")
     X = Sequential()
     # TODO: select model here
-    my_model = LSTM_AE_model_epsilon2(X, X_train)
+    my_model = LSTM_AE_model_delta2(X, X_train)
     my_model.compile(loss=model_parameters['my_loss'], optimizer=model_parameters['my_optimizer'])
     my_model.summary()
 
