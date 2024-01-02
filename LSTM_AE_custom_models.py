@@ -66,6 +66,18 @@ def LSTM_AE_model_alpha4(model, inputs, hyperparameters=None):
     #model = Model(inputs=inputs, outputs=output)
     return model
 
+def LSTM_AE_model_alpha4(model, inputs, hyperparameters=None):
+    timesteps = inputs.shape[1]
+    num_features = inputs.shape[2]
+    # model.name="LSTM_AE_model_alpha3"
+    model.add(Input(shape=(timesteps, num_features)))
+    model.add(LSTM(128,return_sequences=False))
+    model.add(RepeatVector(30))
+    model.add(LSTM(128, return_sequences=True))
+    model.add(TimeDistributed(Dense(num_features)))
+    #model = Model(inputs=inputs, outputs=output)
+    return model
+
 # https://github.com/Jithsaavvy/Explaining-deep-learning-models-for-detecting-anomalies-in-time-series-data-RnD-project
 def LSTM_AE_model_beta1(model, inputs, hyperparameters=None):
     timesteps = inputs.shape[1]
@@ -91,6 +103,19 @@ def LSTM_AE_model_beta2(model, inputs, hyperparameters=None):
     model.add(RepeatVector(timesteps))
     model.add(LSTM(4, activation='softmax', return_sequences=True))
     model.add(LSTM(16, activation='softmax', return_sequences=True))
+    model.add(TimeDistributed(Dense(num_features)))
+    return model
+
+def LSTM_AE_model_beta2(model, inputs, hyperparameters=None):
+    timesteps = inputs.shape[1]
+    num_features = inputs.shape[2]
+    # model.name ="LSTM_AE_model_beta1"
+    model.add(Input(shape=(timesteps, num_features)))
+    model.add(LSTM(16, return_sequences=True,kernel_regularizer=regularizers.l2(0.00)))
+    model.add(LSTM(4,  return_sequences=False))
+    model.add(RepeatVector(timesteps))
+    model.add(LSTM(4, return_sequences=True))
+    model.add(LSTM(16, return_sequences=True))
     model.add(TimeDistributed(Dense(num_features)))
     return model
 
@@ -132,8 +157,8 @@ def LSTM_AE_model_gamma3(model, inputs, hyperparameters=None):
     model.add(LSTM(10, return_sequences=True))
     model.add(LSTM(6, activation='softmax', return_sequences=True))
     model.add(LSTM(1, activation='softmax'))
-    model.add(Dense(10, kernel_initializer='glorot_normal', activation='softmax'))
-    model.add(Dense(10, kernel_initializer='glorot_normal', activation='softmax'))
+    model.add(Dense(10, kernel_initializer='glorot_normal', return_sequences=True))
+    model.add(Dense(10, kernel_initializer='glorot_normal', return_sequences=False))
     model.add((Dense(1)))
     return model
 # https://github.com/thomashuang02/LSTM-Autoencoder-for-Time-Series-Anomaly-Detection/blob/main/lstm_autoencoder.ipynb
@@ -217,6 +242,39 @@ def LSTM_AE_model_epsilon2(model, inputs, hyperparameters=None):
     decoder2 = RepeatVector(n_out)(encoder)
     decoder2 = LSTM(100, return_sequences=True)(decoder2)
     decoder2 = TimeDistributed(Dense(1))(decoder2)
+    # tie it together
+    model = Model(inputs=visible, outputs=[decoder1, decoder2])
+    return model
+
+
+def LSTM_AE_model_epsilon3(model, inputs, hyperparameters=None):
+    timesteps = inputs.shape[1]
+    num_features = inputs.shape[2]
+    seq_out = inputs[:, 1:, :]
+    n_out = timesteps
+    # model.add(Input(shape=(timesteps, 1),name='LSTM_AE_model_epsilon1'))
+    # model.add(LSTM(100, activation='sigmoid',return_sequences=True))
+    # # define reconstruct decoder
+    # model.add(RepeatVector(1))
+    # model.add(LSTM(100, activation='relu', return_sequences=True))
+    # model.add(TimeDistributed(Dense(1)))
+    # # define predict decoder
+    # model.add(RepeatVector(num_features))
+    # model.add(LSTM(100, activation='relu', return_sequences=True))
+    # model.add(TimeDistributed(Dense(1)))
+
+    # define encoder
+    # model.name="LSTM_AE_model_epsilon2"
+    visible = Input(shape=(timesteps,num_features))
+    encoder = LSTM(100)(visible)
+    # define reconstruct decoder
+    decoder1 = RepeatVector(timesteps)(encoder)
+    decoder1 = LSTM(100, return_sequences=True)(decoder1)
+    decoder1 = TimeDistributed(Dense(num_features))(decoder1)
+    # define predict decoder
+    decoder2 = RepeatVector(n_out)(encoder)
+    decoder2 = LSTM(100, return_sequences=True)(decoder2)
+    decoder2 = TimeDistributed(Dense(num_features))(decoder2)
     # tie it together
     model = Model(inputs=visible, outputs=[decoder1, decoder2])
     return model
