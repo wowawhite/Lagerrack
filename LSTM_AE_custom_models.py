@@ -3,6 +3,15 @@ from keras.models import Model
 from keras import regularizers
 import sys
 # https://github.com/datablogger-ml/Anomaly-detection-with-Keras/blob/master/Anomaly_Detection_Time_Series.ipynb
+# Requirements for CUDNN-optimizer:
+# activation == tanh
+# recurrent_activation == sigmoid
+# recurrent_dropout == 0
+# unroll is False
+# use_bias is True
+# Inputs, if use masking, are strictly right-padded.
+# Eager execution is enabled in the outermost context.
+
 def LSTM_AE_model_alpha1(model, inputs, hyperparameters=None):
     timesteps = inputs.shape[1]
     num_features = inputs.shape[2]
@@ -107,10 +116,24 @@ def LSTM_AE_model_gamma2(model, inputs, hyperparameters=None):
     # model.name ="LSTM_AE_model_gamma1"
     model.add(Input(shape=(timesteps, num_features)))
     model.add(LSTM(10, return_sequences=True))
+    model.add(LSTM(6,  return_sequences=True))
+    model.add(LSTM(1))
+    model.add(Dense(10, kernel_initializer='glorot_normal'))
+    model.add(Dense(10, kernel_initializer='glorot_normal'))
+    model.add((Dense(1)))
+    return model
+
+def LSTM_AE_model_gamma3(model, inputs, hyperparameters=None):
+    # encoder stuff: input (None, 4, feats), output (None, 16)
+    timesteps = inputs.shape[1]
+    num_features = inputs.shape[2]
+    # model.name ="LSTM_AE_model_gamma1"
+    model.add(Input(shape=(timesteps, num_features)))
+    model.add(LSTM(10, return_sequences=True))
     model.add(LSTM(6, activation='softmax', return_sequences=True))
     model.add(LSTM(1, activation='softmax'))
-    model.add(Dense(10, kernel_initializer='glorot_normal', activation='relu'))
-    model.add(Dense(10, kernel_initializer='glorot_normal', activation='relu'))
+    model.add(Dense(10, kernel_initializer='glorot_normal', activation='softmax'))
+    model.add(Dense(10, kernel_initializer='glorot_normal', activation='softmax'))
     model.add((Dense(1)))
     return model
 # https://github.com/thomashuang02/LSTM-Autoencoder-for-Time-Series-Anomaly-Detection/blob/main/lstm_autoencoder.ipynb

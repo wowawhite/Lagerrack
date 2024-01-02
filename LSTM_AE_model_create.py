@@ -26,12 +26,12 @@ from LSTM_AE_custom_models import *
 
 warnings.filterwarnings('ignore')
 # program control flags
-USE_CUDA = True
-USE_DEBUGPRINT = True
+USE_CUDA = True  # use CPU or Nvidia GPU
+USE_DEBUGPRINT = True  # Add additional debug flags
 USE_STARTSCRIPT = False  # tbd
 USE_ADVANCEDWINDOW = False  # tbd
-USE_FFT = False
-USE_ANOTHERTESTFILE = True
+USE_FFT = False  # tbd
+USE_ANOTHERTESTFILE = True  # use prediction model on another NOK time series file
 parent_dir = Path(__file__).resolve().parent
 out_dir = str(Path.joinpath(parent_dir, "output")) + os.sep
 
@@ -54,7 +54,7 @@ model_parameters = dict(
     my_loss='mae',
     my_optimizer='adam',
     # anomaly detection
-    my_threshold=2.2,
+    my_threshold=1,
     # early stop paramerers
     my_monitor='val_loss',
     my_patience=3,
