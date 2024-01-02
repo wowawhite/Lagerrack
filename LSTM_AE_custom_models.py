@@ -208,14 +208,14 @@ def LSTM_AE_model_epsilon2(model, inputs, hyperparameters=None):
     # define encoder
     # model.name="LSTM_AE_model_epsilon2"
     visible = Input(shape=(timesteps,num_features))
-    encoder = LSTM(100, activation='tf.keras.activations.softmax')(visible)
+    encoder = LSTM(100)(visible)
     # define reconstruct decoder
     decoder1 = RepeatVector(timesteps)(encoder)
-    decoder1 = LSTM(100, activation='tf.keras.activations.softmax', return_sequences=True)(decoder1)
+    decoder1 = LSTM(100, return_sequences=True)(decoder1)
     decoder1 = TimeDistributed(Dense(1))(decoder1)
     # define predict decoder
     decoder2 = RepeatVector(n_out)(encoder)
-    decoder2 = LSTM(100, activation='tf.keras.activations.softmax', return_sequences=True)(decoder2)
+    decoder2 = LSTM(100, return_sequences=True)(decoder2)
     decoder2 = TimeDistributed(Dense(1))(decoder2)
     # tie it together
     model = Model(inputs=visible, outputs=[decoder1, decoder2])

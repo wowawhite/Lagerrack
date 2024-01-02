@@ -43,7 +43,7 @@ model_parameters = dict(
     Timestamp=timestr,  # timestring for identification
     # data preparation
     sequence_start=300,  # start second in audio file for  subsequence analysis
-    sequence_stop=302,  # stop second in audio file for subsequence analysis
+    sequence_stop=312,  # stop second in audio file for subsequence analysis
     train_test_split=0.8,  # 80/20 split for training/testing set
     time_steps=30,  # 30 size of sub-sequences for LSTM feeding
     # model learining
@@ -55,7 +55,7 @@ model_parameters = dict(
     my_loss='mae',
     my_optimizer='adam',
     # anomaly detection
-    my_threshold=1,
+    my_threshold=2.2,
     # early stop paramerers
     my_monitor='val_loss',
     my_patience=3,
@@ -197,7 +197,7 @@ try:
     print("assembly model")
     X = Sequential()
     # TODO: select model here
-    my_model = LSTM_AE_model_gamma1(X, X_train)
+    my_model = LSTM_AE_model_epsilon2(X, X_train)
     my_model.compile(loss=model_parameters['my_loss'], optimizer=model_parameters['my_optimizer'])
     my_model.summary()
 
