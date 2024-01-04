@@ -42,12 +42,14 @@ model_parameters = dict(
     # Model variables are set here:
     Timestamp=timestr,  # timestring for identification
     # data preparation
+    my_learningsequence="visc6_nosonic_ok",
+    my_samplingfrequency=44100,
     sequence_start=300,  # start second in audio file for  subsequence analysis
-    sequence_stop=302,  # stop second in audio file for subsequence analysis
+    sequence_stop=342,  # stop second in audio file for subsequence analysis
     train_test_split=0.8,  # 80/20 split for training/testing set
     time_steps=30,  # 30 size of sub-sequences for LSTM feeding
     # model learining
-    my_epochs=6,  # 10
+    my_epochs=20,  # 10
     my_batch_size=32,  # 32  dimensions of time steps for 2d input pattern
     my_validation_split=0.2,  # 0.1
     # my_dropout=0.2, #  model-depending, not global. likely not useful for sequences
@@ -60,8 +62,9 @@ model_parameters = dict(
     my_monitor='val_loss',
     my_patience=3,
     my_mode='min',
-    my_nok_startsec=8159,
-    my_nok_stopsec=8162,
+    my_predictsequence="visc6_nosonic_nok",
+    my_nok_startsec=6418,
+    my_nok_stopsec=6424,
     # training information
     my_traintime='',
     my_ostype='',
@@ -126,7 +129,7 @@ def read_flac_to_pandas(filename, start_sec=None, stop_sec=None):
             work_dir = "//media//wowa//Windows Data//wk_messungen//"
     file_type = ".flac"
     audiofile_path = (work_dir + filename + file_type)
-    full_signal, sampling_frequency = sf.read(audiofile_path, start=start_sec * 384000, stop=stop_sec * 384000,
+    full_signal, sampling_frequency = sf.read(audiofile_path, start=start_sec * model_parameters["my_samplingfrequency"], stop=stop_sec * model_parameters["my_samplingfrequency"],
                                               dtype="float32")
     # full_signal.astype(dtype=np.float16)
     signal_length = full_signal.shape[0] / sampling_frequency  # signal length in seconds
@@ -144,8 +147,8 @@ def read_flac_to_pandas(filename, start_sec=None, stop_sec=None):
 
 # Task 2: Load and Inspect the S&P 500 Index Data
 # df = pd.read_csv('S&P_500_Index_Data.csv',parse_dates=['date'])
-df = read_flac_to_pandas("visc6_ultrasonic_ok", model_parameters['sequence_start'],
-                         model_parameters['sequence_stop'])  # [(384000*sequence_start):(384000*sequence_stop)]
+df = read_flac_to_pandas(filename=model_parameters["my_learningsequence"], start_sec=model_parameters['sequence_start'],
+                         stop_sec=model_parameters['sequence_stop'])
 df.head()
 df.info()
 
@@ -197,7 +200,7 @@ try:
     print("assembly model")
     X = Sequential()
     # TODO: select model here
-    my_model = LSTM_AE_model_delta2(X, X_train)
+    my_model = LSTM_AE_model_beta3(X, X_train)
     my_model.compile(loss=model_parameters['my_loss'], optimizer=model_parameters['my_optimizer'])
     my_model.summary()
 
@@ -304,7 +307,7 @@ try:
     print(f"Runtime: {runtime_time}")
 
     if USE_ANOTHERTESTFILE:
-        nok_sequence = read_flac_to_pandas("visc6_ultrasonic_nok", start_sec=model_parameters['my_nok_startsec'],
+        nok_sequence = read_flac_to_pandas(filename=model_parameters["my_predictsequence"], start_sec=model_parameters['my_nok_startsec'],
                                            stop_sec=model_parameters['my_nok_stopsec'])
         print("predicting anomaly in NOK sequence")
 
