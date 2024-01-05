@@ -293,3 +293,17 @@ def LSTM_AE_model_zeta1(model, inputs, hyperparameters=None):
     model.add(LSTM(128, return_sequences=True, name='L10'))
     model.add(TimeDistributed(Dense(num_features)))
     return model
+
+def LSTM_AE_model_zeta2(model, inputs, hyperparameters=None):
+    timesteps = inputs.shape[1]
+    num_features = inputs.shape[2]
+    model.add(Input(shape=(timesteps, num_features), name ="LSTM_AE_model_zeta2"))
+    # https://keras.io/api/layers/initializers/
+    model.add(LSTM(128, return_sequences=True, name='L1'))
+    model.add(LSTM(64, return_sequences=True, name='L2'))
+    model.add(LSTM(32, return_sequences=True, name='L3'))
+    model.add(LSTM(64, return_sequences=True, name='L4'))
+    model.add(LSTM(128, return_sequences=True, name='L5'))
+
+    model.add(TimeDistributed(Dense(num_features)))
+    return model
