@@ -18,6 +18,8 @@ from sklearn.preprocessing import StandardScaler
 import tkinter as tk
 from tkinter import filedialog
 import keras as kr
+from LSTM_AE_custom_models import *
+from Notification_module import *
 
 print("Select .keras model file")
 root = tk.Tk()
@@ -163,49 +165,56 @@ with open(history_file_path, "rb") as file_pi:
 
 # Task 3: Load target file
 nok_sequence = read_flac_to_pandas(filename=model_parameters["my_predictsequence"],start_sec=model_parameters["my_nok_startsec"], stop_sec=model_parameters["my_nok_stopsec"])
-print("predicting anomaly in NOK sequence")
-nok_sequence_size = int(len(nok_sequence))
-nok_sequence = nok_sequence.iloc[0:nok_sequence_size]
-nok_scaler = StandardScaler()
-nok_scaler = nok_scaler.fit(nok_sequence[['close']])
-nok_sequence['close'] = nok_scaler.transform(nok_sequence[['close']])
-nok_X_train, nok_y_train = create_sequences(nok_sequence[['close']], nok_sequence['close'], model_parameters['time_steps'])
-nok_X_train_pred = model_loaded.predict(nok_X_train)
-nok_mae_loss = pd.DataFrame(np.mean(np.abs(nok_X_train_pred - nok_X_train),axis=1),columns=['Error'])
+try:
+    print("predicting anomaly in NOK sequence")
+    nok_sequence_size = int(len(nok_sequence))
+    nok_sequence = nok_sequence.iloc[0:nok_sequence_size]
+    nok_scaler = StandardScaler()
+    nok_scaler = nok_scaler.fit(nok_sequence[['close']])
+    nok_sequence['close'] = nok_scaler.transform(nok_sequence[['close']])
+    nok_X_train, nok_y_train = create_sequences(nok_sequence[['close']], nok_sequence['close'], model_parameters['time_steps'])
+    nok_X_train_pred = model_loaded.predict(nok_X_train)
+    nok_mae_loss = pd.DataFrame(np.mean(np.abs(nok_X_train_pred - nok_X_train),axis=1),columns=['Error'])
 
-#Task 8: Detect Anomalies in Data
-test_score_df = pd.DataFrame(nok_sequence[model_parameters['time_steps']:])
-test_score_df['loss'] = nok_mae_loss
-test_score_df['threshold'] = model_parameters['my_threshold']
-test_score_df['anomaly'] = test_score_df['loss'] > test_score_df['threshold']  # this yields T/F but could be adapted to anomaly score
-test_score_df['close'] = nok_sequence[model_parameters['time_steps']:]['close']
-test_score_df.head()
-test_score_df.tail()
-nok_anomalies = test_score_df[test_score_df['anomaly'] == True]
-nok_anomalies.head()
+    #Task 8: Detect Anomalies in Data
+    test_score_df = pd.DataFrame(nok_sequence[model_parameters['time_steps']:])
+    test_score_df['loss'] = nok_mae_loss
+    test_score_df['threshold'] = model_parameters['my_threshold']
+    test_score_df['anomaly'] = test_score_df['loss'] > test_score_df['threshold']  # this yields T/F but could be adapted to anomaly score
+    test_score_df['close'] = nok_sequence[model_parameters['time_steps']:]['close']
+    test_score_df.head()
+    test_score_df.tail()
+    nok_anomalies = test_score_df[test_score_df['anomaly'] == True]
+    nok_anomalies.head()
 
-nok_myfresh_x = nok_sequence[model_parameters['time_steps']:]['date']
-nok_myfresh_y = nok_scaler.inverse_transform(nok_sequence[model_parameters['time_steps']:]['close'].values.reshape(-1, 1))
+    nok_myfresh_x = nok_sequence[model_parameters['time_steps']:]['date']
+    nok_myfresh_y = nok_scaler.inverse_transform(nok_sequence[model_parameters['time_steps']:]['close'].values.reshape(-1, 1))
 
-print("shapes testdata x,y,:", nok_myfresh_x.shape, nok_myfresh_y.shape)
-nok_myotherfresh_x = nok_anomalies['date']
-nok_myotherfresh_y = nok_scaler.inverse_transform(nok_anomalies['close'].values.reshape(-1, 1))
-print("shapes anomalies x,y,:", nok_myotherfresh_x.shape, nok_myotherfresh_y.shape)
-# plot original nok time series
-fig = go.Figure()
-fig.add_trace(go.Scatter(x=nok_myfresh_x, y=nok_myfresh_y[:, 0], mode='lines', name='audio data points'))
-fig.update_layout(title='Audio spectrum with NOK anomalies - ' + timetag, xaxis_title='Time',
-                  yaxis_title='Audio spectrum', showlegend=True)
-fig.write_html(out_dir + timetag + "_my_nok_timeseries.html")
-fig.show()
+    print("shapes testdata x,y,:", nok_myfresh_x.shape, nok_myfresh_y.shape)
+    nok_myotherfresh_x = nok_anomalies['date']
+    nok_myotherfresh_y = nok_scaler.inverse_transform(nok_anomalies['close'].values.reshape(-1, 1))
+    print("shapes anomalies x,y,:", nok_myotherfresh_x.shape, nok_myotherfresh_y.shape)
+    # plot original nok time series
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=nok_myfresh_x, y=nok_myfresh_y[:, 0], mode='lines', name='audio data points'))
+    fig.update_layout(title='Audio spectrum with NOK anomalies - ' + timetag, xaxis_title='Time',
+                      yaxis_title='Audio spectrum', showlegend=True)
+    fig.write_html(out_dir + timetag + "_my_nok_timeseries.html")
+    fig.show()
 
-# plot anomaly datapoints over original data
-fig = go.Figure()
-fig.add_trace(go.Scatter(x=nok_myfresh_x, y=nok_myfresh_y[:, 0], mode='lines', name='audio data points'))
-fig.add_trace(go.Scatter(x=nok_myotherfresh_x, y=nok_myotherfresh_y[:, 0], mode='markers', name='Anomaly'))
-fig.update_layout(title='Audio spectrum with NOK anomalies - ' + timetag, xaxis_title='Time',
-                  yaxis_title='Audio spectrum', showlegend=True)
-fig.write_html(out_dir + timetag + "_my_nok_anomalies.html")
-fig.show()
-
+    # plot anomaly datapoints over original data
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=nok_myfresh_x, y=nok_myfresh_y[:, 0], mode='lines', name='audio data points'))
+    fig.add_trace(go.Scatter(x=nok_myotherfresh_x, y=nok_myotherfresh_y[:, 0], mode='markers', name='Anomaly'))
+    fig.update_layout(title='Audio spectrum with NOK anomalies - ' + timetag, xaxis_title='Time',
+                      yaxis_title='Audio spectrum', showlegend=True)
+    fig.write_html(out_dir + timetag + "_my_nok_anomalies.html")
+    fig.show()
+except Exception as error:
+    print("sending failed mail with following error:")
+    print(error)
+    send_error_notification(error)
+else:
+    print("sending ok mail")
+    send_finish_notification()
 print("done.EOF")

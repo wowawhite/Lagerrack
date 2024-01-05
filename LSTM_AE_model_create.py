@@ -3,8 +3,6 @@
 # TODO: apply hamming window
 # TODO: apply fft for sequence
 # TODO: implement easy hyperparameter tuning (with json?)
-# TODO: bug: nok sequence. wront time ticks
-# TODO: bug: automatic sampling frequency detection not working
 
 # Task 1: Import Libraries
 import warnings
