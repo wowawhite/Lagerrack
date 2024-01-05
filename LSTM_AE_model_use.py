@@ -42,7 +42,7 @@ model_parameters = dict(
     Timestamp=timestr,  # timestring for identification
     # data preparation
     my_learningsequence="visc6_nosonic_ok",
-    my_samplingfrequency=384000,  # 384000
+    my_samplingfrequency=0,  # 384000
     sequence_start=300,  # start second in audio file for  subsequence analysis
     sequence_stop=310,  # stop second in audio file for subsequence analysis
     train_test_split=0.8,  # 80/20 split for training/testing set
@@ -62,8 +62,8 @@ model_parameters = dict(
     my_patience=3,
     my_mode='min',
     my_predictsequence="visc6_ultrasonic_nok",
-    my_nok_startsec=6400,
-    my_nok_stopsec=6440,
+    my_nok_startsec=6418,
+    my_nok_stopsec=6424,
     # my_predictsequence="visc6_ultrasonic_nok",
     # my_nok_startsec=6418,
     # my_nok_stopsec=6424,
@@ -128,12 +128,11 @@ def read_flac_to_pandas(filename, start_sec=None, stop_sec=None):
     file_type = ".flac"
     audiofile_path = (work_dir + filename + file_type)
     my_sf = sf.SoundFile(file=audiofile_path)
-    sf_info = my_sf.info(file=audiofile_path)
-    samplerate = sf_info['samplerate']
-    print("samplerate",samplerate)
-    full_signal, sampling_frequency = my_sf.read(audiofile_path, start=start_sec * model_parameters["my_samplingfrequency"], stop=stop_sec * model_parameters["my_samplingfrequency"],
-                                              dtype="float32")
+    samplerate = my_sf.samplerate
+    model_parameters.update({"my_samplingfrequency": samplerate})
     my_sf.close()
+    full_signal, sampling_frequency = sf.read(audiofile_path, start=start_sec * samplerate, stop=stop_sec * samplerate,
+                                              dtype="float32")
     # full_signal.astype(dtype=np.float16)
     signal_length = full_signal.shape[0] / sampling_frequency  # signal length in seconds
     full_time = np.linspace(start=start_sec, stop=stop_sec, num=full_signal.shape[0], dtype=np.float32)
