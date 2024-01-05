@@ -35,16 +35,13 @@ USE_FFT = False
 parent_dir = Path(__file__).resolve().parent
 out_dir = str(Path.joinpath((parent_dir),"output"))+os.sep
 
-
-
-
 timestr = time.strftime("%Y%m%d-%H%M%S")
 model_parameters = dict(
     # Model variables are set here:
     Timestamp=timestr,  # timestring for identification
     # data preparation
     my_learningsequence="visc6_nosonic_ok",
-    my_samplingfrequency=0,  # 384000
+    my_samplingfrequency=0,  # automatic detection ok
     sequence_start=300,  # start second in audio file for  subsequence analysis
     sequence_stop=310,  # stop second in audio file for subsequence analysis
     train_test_split=0.8,  # 80/20 split for training/testing set
@@ -63,9 +60,9 @@ model_parameters = dict(
     my_monitor='val_loss',
     my_patience=3,
     my_mode='min',
-    my_predictsequence="visc6_ultrasonic_nok",
-    my_nok_startsec=6418,
-    my_nok_stopsec=6424,
+    my_predictsequence="visc6_nosonic_nok",  # visc6_ultrasonic_nok visc6_nosonic_nok
+    my_nok_startsec=6400,  # same for visc6_ultrasonic_nok and visc6_nosonic_nok
+    my_nok_stopsec=6440,  # same for visc6_ultrasonic_nok and visc6_nosonic_nok
     # my_predictsequence="visc6_ultrasonic_nok",
     # my_nok_startsec=6418,
     # my_nok_stopsec=6424,
