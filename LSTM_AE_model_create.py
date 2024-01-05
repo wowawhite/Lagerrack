@@ -43,9 +43,9 @@ model_parameters = dict(
     Timestamp=timestr,  # timestring for identification
     # data preparation
     my_learningsequence="visc6_nosonic_ok",
-    my_samplingfrequency=384000,  # 384000 44100
-    sequence_start=10,  # start second in audio file for  subsequence analysis
-    sequence_stop=1000,  # stop second in audio file for subsequence analysis
+    my_samplingfrequency=0,  # automatic detection ok
+    sequence_start=100,  # start second in audio file for  subsequence analysis
+    sequence_stop=400,  # stop second in audio file for subsequence analysis
     train_test_split=0.8,  # 80/20 split for training/testing set
     time_steps=30,  # 30 size of sub-sequences for LSTM feeding
     # model learining
@@ -62,7 +62,7 @@ model_parameters = dict(
     my_monitor='val_loss',
     my_patience=3,
     my_mode='min',
-    my_predictsequence="visc6_ultrasonic_nok",
+    my_predictsequence="visc6_nosonic_nok",
     my_nok_startsec=6400,
     my_nok_stopsec=6440,
     # my_predictsequence="visc6_ultrasonic_nok",
