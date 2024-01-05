@@ -44,12 +44,12 @@ model_parameters = dict(
     # data preparation
     my_learningsequence="visc6_ultrasonic_nok", #visc6_ultrasonic_ok visc6_nosonic_ok
     my_samplingfrequency=0,  # automatic detection ok
-    sequence_start=8159,  # start second in audio file for  subsequence analysis
-    sequence_stop=8162,  # stop second in audio file for subsequence analysis
+    sequence_start=650,  #9190 start second in audio file for  subsequence analysis
+    sequence_stop=1000,  #9210 stop second in audio file for subsequence analysis
     train_test_split=0.8,  # 80/20 split for training/testing set
     time_steps=30,  # 30 size of sub-sequences for LSTM feeding
     # model learining
-    my_epochs=20,  # 10
+    my_epochs=2,  # 10
     my_batch_size=32,  # 32  dimensions of time steps for 2d input pattern
     my_validation_split=0.2,  # 0.1
     # my_dropout=0.2, #  model-depending, not global. likely not useful for sequences
@@ -63,8 +63,8 @@ model_parameters = dict(
     my_patience=3,
     my_mode='min',
     my_predictsequence="visc6_ultrasonic_nok",  # visc6_ultrasonic_nok visc6_nosonic_nok
-    my_nok_startsec=6400,  # same for visc6_ultrasonic_nok and visc6_nosonic_nok
-    my_nok_stopsec=6440,  # same for visc6_ultrasonic_nok and visc6_nosonic_nok
+    my_nok_startsec=6416,  # same for visc6_ultrasonic_nok and visc6_nosonic_nok
+    my_nok_stopsec=6426,  # same for visc6_ultrasonic_nok and visc6_nosonic_nok
      my_traintime='',
     my_ostype='',
     my_cudaversion='',
@@ -203,7 +203,7 @@ try:
     print("assembly model")
     X = Sequential()
     # TODO: select model here
-    my_model = LSTM_AE_model_beta3(X, X_train)
+    my_model = LSTM_AE_model_zeta2(X, X_train)
     my_model.compile(loss=model_parameters['my_loss'], optimizer=model_parameters['my_optimizer'])
     my_model.summary()
 
