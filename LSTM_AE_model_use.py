@@ -9,6 +9,7 @@ import os
 import pickle
 import plotly.express as px
 import plotly.graph_objects as go
+import sys
 import tensorflow as tf
 from pathlib import Path
 import platform
@@ -16,7 +17,7 @@ import time
 from sklearn.preprocessing import StandardScaler
 import tkinter as tk
 from tkinter import filedialog
-
+import keras as kr
 root = tk.Tk()
 root.withdraw()
 
@@ -36,30 +37,42 @@ out_dir = str(Path.joinpath((parent_dir),"output"))+os.sep
 timestr = time.strftime("%Y%m%d-%H%M%S")
 model_parameters = dict(
     # Model variables are set here:
-    Timestamp = timestr,  # timestring for identification
-    #data preparation
-    sequence_start = 300,  # start second in audio file for  subsequence analysis
-    sequence_stop = 302,  # stop second in audio file for subsequence analysis
-    train_test_split = 0.8,  # 80/20 split for training/testing set
-    time_steps = 30,  # size of sub-sequences for LSTM feeding
-    #model learining
-    my_epochs=30,  # 10
-    my_batch_size=32,  #32
+    Timestamp=timestr,  # timestring for identification
+    # data preparation
+    my_learningsequence="visc6_nosonic_ok",
+    my_samplingfrequency=44100,
+    sequence_start=300,  # start second in audio file for  subsequence analysis
+    sequence_stop=310,  # stop second in audio file for subsequence analysis
+    train_test_split=0.8,  # 80/20 split for training/testing set
+    time_steps=30,  # 30 size of sub-sequences for LSTM feeding
+    # model learining
+    my_epochs=20,  # 10
+    my_batch_size=32,  # 32  dimensions of time steps for 2d input pattern
     my_validation_split=0.2,  # 0.1
-    #my_dropout = 0.2, -> model-individual
+    # my_dropout=0.2, #  model-depending, not global. likely not useful for sequences
     # model quality criteria
     my_loss='mae',
     my_optimizer='adam',
-    #anomaly detection
-    my_threshold = 4,  # -> anomaly detection sensitivity
+    # anomaly detection
+    my_threshold=2.5,
     # early stop paramerers
     my_monitor='val_loss',
     my_patience=3,
     my_mode='min',
+    my_predictsequence="visc6_nosonic_nok",
+    my_nok_startsec=6400,
+    my_nok_stopsec=6440,
+    # my_predictsequence="visc6_ultrasonic_nok",
+    # my_nok_startsec=6418,
+    # my_nok_stopsec=6424,
     # training information
     my_traintime='',
+    my_ostype='',
     my_cudaversion='',
-    my_trainingsucess=False
+    my_fftusage=False,
+    my_pythonversion=sys.version,
+    my_tensorflowversion=tf.__version__,
+    my_kerasversion=kr.__version__
 )
 
 def create_sequences(X, y, time_steps=1):
@@ -97,38 +110,35 @@ print('Tensorflow version:', tf.__version__)
 # get parent path
 
 
-def read_flac_to_pandas(filename,start_sec=None,stop_sec=None):
+def read_flac_to_pandas(filename, start_sec=None, stop_sec=None):
     match OS_TYPE:
         case "nt":
-            work_dir = ("D:\\wk_messungen\\")
+            work_dir = "D:\\wk_messungen\\"
         case "posix":
-            if MACHINE_ID=='wowa-desktopL':
-                #myuser = os.environ.get('USER')
+            if MACHINE_ID == 'wowa-desktopL':
+                # myuser = os.environ.get('USER')
                 work_dir = "//mnt/Windows_data//wk_messungen//"
-            elif(MACHINE_ID=="wowa-backend"):
-                work_dir = ("//mnt//datadrive//wk_messungen//")
+            elif MACHINE_ID == "wowa-backend":
+                work_dir = "//mnt//datadrive//wk_messungen//"
 
         case _:
-            work_dir = ("//media//wowa//Windows Data//wk_messungen//")
+            work_dir = "//media//wowa//Windows Data//wk_messungen//"
     file_type = ".flac"
-    audiofile_path = ( work_dir + filename + file_type)
-
-    full_signal, sampling_frequency = sf.read(audiofile_path,start=start_sec*384000, stop=stop_sec*384000, dtype="float32")
+    audiofile_path = (work_dir + filename + file_type)
+    full_signal, sampling_frequency = sf.read(audiofile_path, start=start_sec * model_parameters["my_samplingfrequency"], stop=stop_sec * model_parameters["my_samplingfrequency"],
+                                              dtype="float32")
     # full_signal.astype(dtype=np.float16)
     signal_length = full_signal.shape[0] / sampling_frequency  # signal length in seconds
-    full_time = np.linspace(0,signal_length,full_signal.shape[0] ,dtype=np.float32)
-
-    if (USE_DEBUGPRINT):
+    full_time = np.linspace(0, signal_length, full_signal.shape[0], dtype=np.float32)
+    if USE_DEBUGPRINT:
         print(f"Opening file:{audiofile_path}")
         print(f"sampling_frequency = {sampling_frequency}")
         print(f"full_signal.shape = {full_signal.shape}")
         print(f"full_time.shape = {full_time.shape}")
         print(f"full signal length  = {signal_length} [s]")
-
-    # dframe = pd.DataFrame(my_array, columns=['date', 'close'])
     dframe = pd.DataFrame({'date': pd.Series(full_time, dtype=np.float32),
-                       'close': pd.Series(full_signal, dtype=np.float16)})
-    #return should be dictionary [date][close]
+                           'close': pd.Series(full_signal, dtype=np.float16)})
+    # return should be dictionary [date][close]
     return dframe
 
 # Task 2: Load model
@@ -146,7 +156,7 @@ with open(history_file_path, "rb") as file_pi:
     my_history = pickle.load(file_pi)
 
 # Task 3: Load target file
-nok_sequence = read_flac_to_pandas("visc6_ultrasonic_nok",start_sec=8159, stop_sec=8162)
+nok_sequence = read_flac_to_pandas(filename=model_parameters["my_predictsequence"],start_sec=model_parameters["my_nok_startsec"], stop_sec=model_parameters["my_nok_stopsec"])
 print("predicting anomaly in NOK sequence")
 nok_sequence_size = int(len(nok_sequence))
 nok_sequence = nok_sequence.iloc[0:nok_sequence_size]

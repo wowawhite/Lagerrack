@@ -45,7 +45,7 @@ model_parameters = dict(
     my_learningsequence="visc6_nosonic_ok",
     my_samplingfrequency=44100,
     sequence_start=300,  # start second in audio file for  subsequence analysis
-    sequence_stop=342,  # stop second in audio file for subsequence analysis
+    sequence_stop=310,  # stop second in audio file for subsequence analysis
     train_test_split=0.8,  # 80/20 split for training/testing set
     time_steps=30,  # 30 size of sub-sequences for LSTM feeding
     # model learining
@@ -63,8 +63,11 @@ model_parameters = dict(
     my_patience=3,
     my_mode='min',
     my_predictsequence="visc6_nosonic_nok",
-    my_nok_startsec=6418,
-    my_nok_stopsec=6424,
+    my_nok_startsec=6400,
+    my_nok_stopsec=6440,
+    # my_predictsequence="visc6_ultrasonic_nok",
+    # my_nok_startsec=6418,
+    # my_nok_stopsec=6424,
     # training information
     my_traintime='',
     my_ostype='',
@@ -200,7 +203,7 @@ try:
     print("assembly model")
     X = Sequential()
     # TODO: select model here
-    my_model = LSTM_AE_model_beta3(X, X_train)
+    my_model = LSTM_AE_model_delta2(X, X_train)
     my_model.compile(loss=model_parameters['my_loss'], optimizer=model_parameters['my_optimizer'])
     my_model.summary()
 
