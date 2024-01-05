@@ -18,10 +18,12 @@ from sklearn.preprocessing import StandardScaler
 import tkinter as tk
 from tkinter import filedialog
 import keras as kr
+
+print("Select .keras model file")
 root = tk.Tk()
 root.withdraw()
-
 model_file_path = filedialog.askopenfilename()
+print("Using .keras model file:", model_file_path)
 
 # program control flags
 USE_CUDA = True
@@ -40,7 +42,7 @@ model_parameters = dict(
     Timestamp=timestr,  # timestring for identification
     # data preparation
     my_learningsequence="visc6_nosonic_ok",
-    my_samplingfrequency=44100,
+    my_samplingfrequency=384000,  # 384000
     sequence_start=300,  # start second in audio file for  subsequence analysis
     sequence_stop=310,  # stop second in audio file for subsequence analysis
     train_test_split=0.8,  # 80/20 split for training/testing set
@@ -59,7 +61,7 @@ model_parameters = dict(
     my_monitor='val_loss',
     my_patience=3,
     my_mode='min',
-    my_predictsequence="visc6_nosonic_nok",
+    my_predictsequence="visc6_ultrasonic_nok",
     my_nok_startsec=6400,
     my_nok_stopsec=6440,
     # my_predictsequence="visc6_ultrasonic_nok",
