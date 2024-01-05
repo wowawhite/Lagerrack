@@ -168,7 +168,7 @@ def LSTM_AE_model_delta2(model, inputs, hyperparameters=None):
     # encoder stuff: input (None, 4, feats), output (None, 16)
     timesteps = inputs.shape[1]
     num_features = inputs.shape[2]
-    model.add(Input(shape=(timesteps, num_features), name ="LSTM_AE_model_delta1"))
+    model.add(Input(shape=(timesteps, num_features), name ="LSTM_AE_model_delta2"))
     # https://keras.io/api/layers/initializers/
     model.add(LSTM(64, kernel_initializer='glorot_normal', return_sequences=True, name='encoder_L1'))
     model.add(LSTM(32, kernel_initializer='glorot_normal', return_sequences=True, name='encoder_L2'))

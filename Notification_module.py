@@ -16,10 +16,10 @@ with open(nonpublic_dir+my_creds_filename) as json_file:
 def send_finish_notification():
     key_filename = creds_data["my_credfile"]
     yag = yagmail.SMTP(user=creds_data["my_email"], oauth2_file=nonpublic_dir+key_filename)
-    yag.send(to='trash_bin@gmx.de', contents="Job done.", subject = 'Python done fine')
+    yag.send(to=creds_data["target_email"], contents="Job done.", subject = 'Python done fine')
 
 def send_error_notification(errorstring):
     key_filename = creds_data["my_credfile"]
     yag = yagmail.SMTP(user=creds_data["my_email"], oauth2_file=nonpublic_dir+key_filename)
-    yag.send(to='trash_bin@gmx.de', contents=str(errorstring), subject = "Job failed. Go fix it, human!")
+    yag.send(to=creds_data["target_email"], contents=str(errorstring), subject = "Job failed. Go fix it, human!")
 

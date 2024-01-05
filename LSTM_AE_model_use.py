@@ -40,10 +40,10 @@ model_parameters = dict(
     # Model variables are set here:
     Timestamp=timestr,  # timestring for identification
     # data preparation
-    my_learningsequence="visc6_nosonic_ok",
+    my_learningsequence="visc6_ultrasonic_nok", #visc6_ultrasonic_ok visc6_nosonic_ok
     my_samplingfrequency=0,  # automatic detection ok
-    sequence_start=300,  # start second in audio file for  subsequence analysis
-    sequence_stop=310,  # stop second in audio file for subsequence analysis
+    sequence_start=8159,  # start second in audio file for  subsequence analysis
+    sequence_stop=8162,  # stop second in audio file for subsequence analysis
     train_test_split=0.8,  # 80/20 split for training/testing set
     time_steps=30,  # 30 size of sub-sequences for LSTM feeding
     # model learining
@@ -60,14 +60,10 @@ model_parameters = dict(
     my_monitor='val_loss',
     my_patience=3,
     my_mode='min',
-    my_predictsequence="visc6_nosonic_nok",  # visc6_ultrasonic_nok visc6_nosonic_nok
+    my_predictsequence="visc6_ultrasonic_nok",  # visc6_ultrasonic_nok visc6_nosonic_nok
     my_nok_startsec=6400,  # same for visc6_ultrasonic_nok and visc6_nosonic_nok
     my_nok_stopsec=6440,  # same for visc6_ultrasonic_nok and visc6_nosonic_nok
-    # my_predictsequence="visc6_ultrasonic_nok",
-    # my_nok_startsec=6418,
-    # my_nok_stopsec=6424,
-    # training information
-    my_traintime='',
+     my_traintime='',
     my_ostype='',
     my_cudaversion='',
     my_fftusage=False,
