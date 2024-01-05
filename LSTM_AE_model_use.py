@@ -55,14 +55,14 @@ model_parameters = dict(
     my_loss='mae',
     my_optimizer='adam',
     # anomaly detection
-    my_threshold=2.5,
+    my_threshold=2.0,
     # early stop paramerers
     my_monitor='val_loss',
     my_patience=3,
     my_mode='min',
     my_predictsequence="visc6_ultrasonic_nok",  # visc6_ultrasonic_nok visc6_nosonic_nok
-    my_nok_startsec=6400,  # same for visc6_ultrasonic_nok and visc6_nosonic_nok
-    my_nok_stopsec=6440,  # same for visc6_ultrasonic_nok and visc6_nosonic_nok
+    my_nok_startsec=6416,  # same for visc6_ultrasonic_nok and visc6_nosonic_nok
+    my_nok_stopsec=6428,  # same for visc6_ultrasonic_nok and visc6_nosonic_nok
      my_traintime='',
     my_ostype='',
     my_cudaversion='',
