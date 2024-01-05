@@ -127,11 +127,16 @@ def read_flac_to_pandas(filename, start_sec=None, stop_sec=None):
             work_dir = "//media//wowa//Windows Data//wk_messungen//"
     file_type = ".flac"
     audiofile_path = (work_dir + filename + file_type)
-    full_signal, sampling_frequency = sf.read(audiofile_path, start=start_sec * model_parameters["my_samplingfrequency"], stop=stop_sec * model_parameters["my_samplingfrequency"],
+    my_sf = sf.SoundFile(file=audiofile_path)
+    sf_info = my_sf.info(file=audiofile_path)
+    samplerate = sf_info['samplerate']
+    print("samplerate",samplerate)
+    full_signal, sampling_frequency = my_sf.read(audiofile_path, start=start_sec * model_parameters["my_samplingfrequency"], stop=stop_sec * model_parameters["my_samplingfrequency"],
                                               dtype="float32")
+    my_sf.close()
     # full_signal.astype(dtype=np.float16)
     signal_length = full_signal.shape[0] / sampling_frequency  # signal length in seconds
-    full_time = np.linspace(0, signal_length, full_signal.shape[0], dtype=np.float32)
+    full_time = np.linspace(start=start_sec, stop=stop_sec, num=full_signal.shape[0], dtype=np.float32)
     if USE_DEBUGPRINT:
         print(f"Opening file:{audiofile_path}")
         print(f"sampling_frequency = {sampling_frequency}")
