@@ -14,7 +14,7 @@ import pickle
 import plotly.graph_objects as go
 import tensorflow as tf
 from pathlib import Path
-import platform
+from platform import node
 import time
 import timeit
 import json
@@ -79,7 +79,7 @@ def save_training_parameters(modelparameters):
         json.dump(modelparameters, fp)
 
 OS_TYPE = os.name
-MACHINE_ID = platform.node()
+MACHINE_ID = node()
 print(f"OS_TYPE: {OS_TYPE}")
 print(f"MACHINE_ID: {MACHINE_ID}")
 print(f"Working directory: {parent_dir}{os.sep}")
