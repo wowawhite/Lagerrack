@@ -24,7 +24,9 @@ from Notification_module import *
 print("Select .keras model file")
 root = tk.Tk()
 root.withdraw()
+
 model_file_path = filedialog.askopenfilename()
+# model_file_path = "//home//wowa//PycharmProjects//Lagerrack//output//20240105-153203_my_model.keras"
 print("Using .keras model file:", model_file_path)
 
 # program control flags
@@ -40,15 +42,15 @@ model_parameters = dict(
     # Model variables are set here:
     Timestamp=timestr,  # timestring for identification
     # data preparation
-    my_learningsequence="visc6_ultrasonic_nok", #visc6_ultrasonic_ok visc6_nosonic_ok
+    my_learningsequence="dataset2_no_ultrasonic_nok", #visc6_ultrasonic_ok visc6_nosonic_ok
     my_samplingfrequency=0,  # automatic detection ok
-    sequence_start=8159,  # start second in audio file for  subsequence analysis
-    sequence_stop=8162,  # stop second in audio file for subsequence analysis
+    sequence_start=2022,  # start second in audio file for  subsequence analysis
+    sequence_stop=2024,  # stop second in audio file for subsequence analysis
     train_test_split=0.8,  # 80/20 split for training/testing set
     time_steps=30,  # 30 size of sub-sequences for LSTM feeding
     # model learining
     my_epochs=20,  # 10
-    my_batch_size=32,  # 32  dimensions of time steps for 2d input pattern
+    my_batch_size=64,  # 32  dimensions of time steps for 2d input pattern
     my_validation_split=0.2,  # 0.1
     # my_dropout=0.2, #  model-depending, not global. likely not useful for sequences
     # model quality criteria
@@ -60,9 +62,9 @@ model_parameters = dict(
     my_monitor='val_loss',
     my_patience=3,
     my_mode='min',
-    my_predictsequence="visc6_ultrasonic_nok",  # visc6_ultrasonic_nok visc6_nosonic_nok
-    my_nok_startsec=6416,  # same for visc6_ultrasonic_nok and visc6_nosonic_nok
-    my_nok_stopsec=6426,  # same for visc6_ultrasonic_nok and visc6_nosonic_nok
+    my_predictsequence="dataset2_no_ultrasonic_nok",  # visc6_ultrasonic_nok visc6_nosonic_nok
+    my_nok_startsec=8869,  # same for visc6_ultrasonic_nok and visc6_nosonic_nok
+    my_nok_stopsec=8873,  # same for visc6_ultrasonic_nok and visc6_nosonic_nok
      my_traintime='',
     my_ostype='',
     my_cudaversion='',
@@ -151,8 +153,15 @@ out_dir = str(Path.joinpath((parent_dir),"output"))+os.sep
 timetag = model_file_path[-30:-15]  # parsing timestamp from keras model filename
 
 history_file_path = out_dir+timetag+"_my_trainhistory.pckl"
+
 model_loaded = tf.keras.models.load_model(model_file_path, compile=True)
 model_loaded.summary()
+
+#modelname = model_loaded.get_layer(index=0)
+# model_loaded.name = "testname"
+# modelname = model_loaded.get_config()["layers"]
+# #print(modelname.name)
+# #print(type (modelname.name))
 with open(history_file_path, "rb") as file_pi:
     my_history = pickle.load(file_pi)
 
@@ -192,7 +201,7 @@ try:
     fig.add_trace(go.Scatter(x=nok_myfresh_x, y=nok_myfresh_y[:, 0], mode='lines', name='audio data points'))
     fig.update_layout(title='Audio spectrum with NOK anomalies - ' + timetag, xaxis_title='Time',
                       yaxis_title='Audio spectrum', showlegend=True)
-    fig.write_html(out_dir + timetag + "_my_nok_timeseries.html")
+    #fig.write_html(out_dir + timetag + "_predictedSRC_"+timestr+".html")
     fig.show()
 
     # plot anomaly datapoints over original data
@@ -201,7 +210,7 @@ try:
     fig.add_trace(go.Scatter(x=nok_myotherfresh_x, y=nok_myotherfresh_y[:, 0], mode='markers', name='Anomaly'))
     fig.update_layout(title='Audio spectrum with NOK anomalies - ' + timetag, xaxis_title='Time',
                       yaxis_title='Audio spectrum', showlegend=True)
-    fig.write_html(out_dir + timetag + "_my_nok_anomalies.html")
+    fig.write_html(out_dir + timetag + "_predictedNOK_"+timestr+".html")
     fig.show()
 except Exception as error:
     print("sending failed mail with following error:")

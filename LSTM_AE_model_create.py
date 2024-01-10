@@ -1,9 +1,3 @@
-# https://github.com/datablogger-ml/Anomaly-detection-with-Keras/blob/master/Anomaly_Detection_Time_Series.ipynb
-
-# TODO: apply hamming window
-# TODO: apply fft for sequence
-# TODO: implement easy hyperparameter tuning (with json?)
-
 # Task 1: Import Libraries
 import warnings
 import numpy as np
@@ -21,20 +15,20 @@ import json
 from sklearn.preprocessing import StandardScaler
 import keras as kr
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.callbacks import EarlyStopping
+from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
 from LSTM_AE_custom_models import *
 from Notification_module import *
-
+os.environ["KERAS_BACKEND"] = "tensorflow"
 warnings.filterwarnings('ignore')
 # program control flags
 USE_CUDA = True  # use CPU or Nvidia GPU
 USE_DEBUGPRINT = True  # Add additional debug flags
-USE_STARTSCRIPT = False  # tbd
-USE_ADVANCEDWINDOW = False  # tbd
 USE_FFT = False  # tbd
 USE_ANOTHERTESTFILE = True  # use prediction model on another NOK time series file
 parent_dir = Path(__file__).resolve().parent
 out_dir = str(Path.joinpath(parent_dir, "output")) + os.sep
+tmp_dir = str(Path.joinpath(parent_dir, "tmp_dir")) + os.sep
+cache_dir = str(Path.joinpath(parent_dir, "cache_dir")) + os.sep
 
 runtime_start = timeit.default_timer()
 timestr = time.strftime("%Y%m%d-%H%M%S")
@@ -42,14 +36,14 @@ model_parameters = dict(
     # Model variables are set here:
     Timestamp=timestr,  # timestring for identification
     # data preparation
-    my_learningsequence="visc6_ultrasonic_nok", #visc6_ultrasonic_ok visc6_nosonic_ok
+    my_learningsequence="dataset2_no_ultrasonic_nok", #visc6_ultrasonic_ok visc6_nosonic_ok
     my_samplingfrequency=0,  # automatic detection ok
     sequence_start=650,  #9190 start second in audio file for  subsequence analysis
     sequence_stop=1000,  #9210 stop second in audio file for subsequence analysis
     train_test_split=0.8,  # 80/20 split for training/testing set
     time_steps=30,  # 30 size of sub-sequences for LSTM feeding
     # model learining
-    my_epochs=2,  # 10
+    my_epochs=12,  # 10  times when the entire dataset passed through the entire network
     my_batch_size=32,  # 32  dimensions of time steps for 2d input pattern
     my_validation_split=0.2,  # 0.1
     # my_dropout=0.2, #  model-depending, not global. likely not useful for sequences
@@ -59,13 +53,15 @@ model_parameters = dict(
     # anomaly detection
     my_threshold=2.5,
     # early stop paramerers
+    my_min_delta=0.0001,
     my_monitor='val_loss',
-    my_patience=3,
+    my_patience=3,  # number epochs to train without improvement. after 3 -> stop
     my_mode='min',
-    my_predictsequence="visc6_ultrasonic_nok",  # visc6_ultrasonic_nok visc6_nosonic_nok
-    my_nok_startsec=6416,  # same for visc6_ultrasonic_nok and visc6_nosonic_nok
-    my_nok_stopsec=6426,  # same for visc6_ultrasonic_nok and visc6_nosonic_nok
-     my_traintime='',
+    my_verbose=1,
+    my_predictsequence="dataset2_no_ultrasonic_nok",  # use this file to predict on a second timeseries
+    my_nok_startsec=6416,  # startpoint for second timeseries
+    my_nok_stopsec=6426,  # endpoint for second timeseries
+    my_traintime='',
     my_ostype='',
     my_cudaversion='',
     my_fftusage=False,
@@ -176,7 +172,7 @@ test['close'] = scaler.transform(test[['close']])
 
 
 # Task 4: Create Training and Test Splits
-# rolling window implementation
+# sliding window implementation
 def create_sequences(x_sequence, y, time_steps=1):
     xs, ys = [], []
     for i in range(len(x_sequence) - time_steps):
@@ -195,8 +191,6 @@ try:
     print("X_test.shape,y_test.shape: ", X_test.shape, y_test.shape)
 
     # Task 5: Build an LSTM Autoencoder
-
-
     timesteps = X_train.shape[1]
     num_features = X_train.shape[2]
 
@@ -207,25 +201,24 @@ try:
     my_model.compile(loss=model_parameters['my_loss'], optimizer=model_parameters['my_optimizer'])
     my_model.summary()
 
-    # layer_names=[layer.name for layer in my_model.layers]
-    # print(layer_names)
-
     tf.keras.utils.plot_model(my_model, show_shapes=True, to_file=out_dir + timestr + '_my_modelplot.png',
                               show_layer_names=True)
 
-    # Task 6: Train the Autoencoder
-    # https://machinelearningmastery.com/how-to-stop-training-deep-neural-networks-at-the-right-time-using-early-stopping/
+    # Task 6: Train the model
+
     early_stop = EarlyStopping(monitor=model_parameters['my_monitor'], patience=model_parameters['my_patience'],
                                mode=model_parameters['my_mode'])  # if the monitored metric does not change -> exit
+
+    keras_callbacks = [
+        EarlyStopping(monitor=model_parameters['my_monitor'], patience=model_parameters['my_patience'],
+                      mode=model_parameters['my_mode'], min_delta=model_parameters["my_min_delta"]),
+        ModelCheckpoint(tmp_dir, monitor=model_parameters['my_monitor'], save_best_only=True,
+                        mode=model_parameters['my_mode'], verbose=model_parameters["my_verbose"])
+    ]
     my_history = my_model.fit(X_train, y_train, epochs=model_parameters['my_epochs'],
                               batch_size=model_parameters['my_batch_size'],
-                              validation_split=model_parameters['my_validation_split'], callbacks=[early_stop],
+                              validation_split=model_parameters['my_validation_split'], callbacks=keras_callbacks,
                               shuffle=False)
-    # my_history = model.fit(X_train,y_train,epochs=10,batch_size=32,validation_split=0.1,shuffle=False)
-
-    # save model while training with checkpoints
-    # https://keras.io/api/callbacks/model_checkpoint/
-    # https://www.tensorflow.org/tutorials/keras/save_and_load
 
     tf.keras.models.save_model(my_model, out_dir + timestr + "_my_model.keras", overwrite=True)
 

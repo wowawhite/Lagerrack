@@ -8,6 +8,8 @@
       <excludeFolder url="file://$MODULE_DIR$/datasets" />
       <excludeFolder url="file://$MODULE_DIR$/output" />
       <excludeFolder url="file://$MODULE_DIR$/nonpublic" />
+      <excludeFolder url="file://$MODULE_DIR$/cache_dir" />
+      <excludeFolder url="file://$MODULE_DIR$/tmp_dir" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />

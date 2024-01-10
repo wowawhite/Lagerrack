@@ -6,3 +6,5 @@
 /output/
 /nonpublic/
 /nonpublic/*
+/tmp_dir/
+/cache_dir/
