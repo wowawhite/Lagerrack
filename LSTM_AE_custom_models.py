@@ -185,6 +185,28 @@ def LSTM_AE_model_delta2(inputs, hyperparameters=None):
     model.add(TimeDistributed(Dense(num_features)))
     return model
 
+def LSTM_AE_model_delta3(inputs, hyperparameters=None):
+    # TODO: https://stackoverflow.com/questions/62728083/change-the-model-name-given-automatically-by-keras-in-model-summary-output/62728323#62728323
+    my_modelname = "delta3"
+    model= Sequential(name=my_modelname)
+    # encoder stuff: input (None, 4, feats), output (None, 16)
+    timesteps = inputs.shape[1]
+    num_features = inputs.shape[2]
+    model.add(Input(shape=(timesteps, num_features), name =my_modelname))
+    # https://keras.io/api/layers/initializers/
+    model.add(LSTM(128, kernel_initializer='glorot_normal', return_sequences=True, name='encoder_L1'))
+    model.add(LSTM(64, kernel_initializer='glorot_normal', return_sequences=True, name='encoder_L1'))
+    model.add(LSTM(32, kernel_initializer='glorot_normal', return_sequences=True, name='encoder_L2'))
+    model.add(LSTM(16, kernel_initializer='glorot_normal', return_sequences=False, name='encoder_L3'))
+    model.add(RepeatVector(timesteps, name='encoder_decoder_bridge'))
+    #decoder_input = Input(shape=(timesteps, 16), name='decoder_input')
+    model.add(LSTM(16, kernel_initializer='glorot_normal', return_sequences=True, name='decoder_L1'))
+    model.add(LSTM(32, kernel_initializer='glorot_normal', return_sequences=True, name='decoder_L2'))
+    model.add(LSTM(64, kernel_initializer='glorot_normal', return_sequences=True, name='decoder_L3'))
+    model.add(LSTM(128, kernel_initializer='glorot_normal', return_sequences=True, name='decoder_L3'))
+    model.add(TimeDistributed(Dense(num_features)))
+    return model
+
 # https://machinelearningmastery.com/lstm-autoencoders/
 # TODO: LSTM_AE_model_epsilon is incomplete and thows error, see:
 # ValueError: setting an array element with a sequence. The requested array has an inhomogeneous shape after 2 dimensions. The detected shape was (2, 1228768) + inhomogeneous part.
