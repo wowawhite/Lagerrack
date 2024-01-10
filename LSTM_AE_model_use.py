@@ -154,8 +154,11 @@ timetag = model_file_path[-30:-15]  # parsing timestamp from keras model filenam
 
 history_file_path = out_dir+timetag+"_my_trainhistory.pckl"
 
+#TODO: https://stackoverflow.com/questions/62728083/change-the-model-name-given-automatically-by-keras-in-model-summary-output/62728323#62728323
 model_loaded = tf.keras.models.load_model(model_file_path, compile=True)
 model_loaded.summary()
+
+
 
 #modelname = model_loaded.get_layer(index=0)
 # model_loaded.name = "testname"

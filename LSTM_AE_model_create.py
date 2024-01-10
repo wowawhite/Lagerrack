@@ -14,7 +14,7 @@ import timeit
 import json
 from sklearn.preprocessing import StandardScaler
 import keras as kr
-from tensorflow.keras.models import Sequential
+# from tensorflow.keras.models import Sequential
 from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
 from LSTM_AE_custom_models import *
 from Notification_module import *
@@ -195,9 +195,9 @@ try:
     num_features = X_train.shape[2]
 
     print("assembly model")
-    X = Sequential()
+    # X = Sequential()
     # TODO: select model here
-    my_model = LSTM_AE_model_zeta2(X, X_train)
+    my_model = LSTM_AE_model_zeta2(X_train)
     my_model.compile(loss=model_parameters['my_loss'], optimizer=model_parameters['my_optimizer'])
     my_model.summary()
 
@@ -303,6 +303,7 @@ try:
     print(f"Runtime: {runtime_time}")
 
     if USE_ANOTHERTESTFILE:
+        timestr_alternative = time.strftime("%Y%m%d-%H%M%S")
         nok_sequence = read_flac_to_pandas(filename=model_parameters["my_predictsequence"], start_sec=model_parameters['my_nok_startsec'],
                                            stop_sec=model_parameters['my_nok_stopsec'])
         print("predicting anomaly in NOK sequence")
@@ -346,7 +347,7 @@ try:
         fig.add_trace(go.Scatter(x=nok_myfresh_x, y=nok_myfresh_y[:, 0], mode='lines', name='audio data points'))
         fig.update_layout(title='Audio spectrum with NOK anomalies - ' + timestr, xaxis_title='Time',
                           yaxis_title='Audio spectrum', showlegend=True)
-        fig.write_html(out_dir + timestr + "_my_nok_timeseries.html")
+        fig.write_html(out_dir + timestr + "_my_nok_timeseries." + timestr_alternative + ".html")
         fig.show()
         # this should plot anomaly datapoints over original data
         fig = go.Figure()
@@ -354,7 +355,7 @@ try:
         fig.add_trace(go.Scatter(x=nok_myotherfresh_x, y=nok_myotherfresh_y[:, 0], mode='markers', name='Anomaly'))
         fig.update_layout(title='Audio spectrum with NOK anomalies - ' + timestr, xaxis_title='Time',
                           yaxis_title='Audio spectrum', showlegend=True)
-        fig.write_html(out_dir + timestr + "_my_nok_anomalies.html")
+        fig.write_html(out_dir + timestr + "_predictedNOK_" + timestr_alternative + ".html")
         fig.show()
 
 except Exception as error:
