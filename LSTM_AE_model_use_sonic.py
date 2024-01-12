@@ -47,7 +47,7 @@ model_parameters = dict(
     sequence_start=6361,  #9190 start second in audio file for  subsequence analysis
     sequence_stop=6481,  #9210 stop second in audio file for subsequence analysis
     train_test_split=0.8,  # 80/20 split for training/testing set
-    time_steps=100,  # 30 size of sub-sequences for LSTM feeding
+    time_steps=30,  # 30 size of sub-sequences for LSTM feeding
     # model learining
     my_epochs=200,  # 10  times when the entire dataset passed through the entire network
     my_batch_size=64,  # 32  dimensions of time steps for 2d input pattern
@@ -57,7 +57,7 @@ model_parameters = dict(
     my_loss='mae',
     my_optimizer='adam',
     # anomaly detection
-    my_threshold=2.5,
+    my_threshold=1.0,
     # early stop paramerers
     my_min_delta=0.0001,
     my_monitor='val_loss',
@@ -65,8 +65,8 @@ model_parameters = dict(
     my_mode='min',
     my_verbose=1,
     my_predictsequence="dataset2_ultrasonic_nok",  # use this file to predict on a second timeseries
-    my_nok_startsec=12308,  # startpoint for second timeseries
-    my_nok_stopsec=12555,  # endpoint for second timeseries
+    my_nok_startsec=12293,  # startpoint for second timeseries
+    my_nok_stopsec=12341,  # endpoint for second timeseries
     my_traintime='',
     my_ostype='',
     my_cudaversion='',
@@ -207,13 +207,10 @@ try:
     fig.update_layout(title='Audio spectrum with NOK anomalies - ' + timetag, xaxis_title='Time',
                       yaxis_title='Audio spectrum', showlegend=True)
     #fig.write_html(out_dir + timetag + "_predictedSRC_"+timestr+".html")
-    fig.show()
-
-    # plot anomaly datapoints over original data
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=nok_myfresh_x, y=nok_myfresh_y[:, 0], mode='lines', name='audio data points'))
     fig.add_trace(go.Scatter(x=nok_myotherfresh_x, y=nok_myotherfresh_y[:, 0], mode='markers', name='Anomaly'))
-    fig.update_layout(title='Audio spectrum with NOK anomalies - ' + timetag, xaxis_title='Time',
+    fig.update_layout(title='Audio spectrum with NOK anomalies - '+model_parameters["my_predictsequence"]+' - ' + timetag, xaxis_title='Time',
                       yaxis_title='Audio spectrum', showlegend=True)
     fig.write_html(out_dir + timetag + "_predictedNOK_"+timestr+".html")
     fig.show()

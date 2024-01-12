@@ -346,7 +346,7 @@ try:
         # plot original nok time series
         fig = go.Figure()
         fig.add_trace(go.Scatter(x=nok_myfresh_x, y=nok_myfresh_y[:, 0], mode='lines', name='audio data points'))
-        fig.update_layout(title='Audio spectrum with NOK anomalies - '+model_parameters["my_predictsequence"]+' - ' + timestr, xaxis_title='Time',
+        fig.update_layout(title='Audio spectrum time series - '+model_parameters["my_predictsequence"]+' - ' + timestr, xaxis_title='Time',
                           yaxis_title='Audio spectrum', showlegend=True)
         fig.write_html(out_dir + timestr + "_my_nok_timeseries." + timestr_alternative + ".html")
         fig.show()
