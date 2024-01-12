@@ -65,8 +65,8 @@ model_parameters = dict(
     my_mode='min',
     my_verbose=1,
     my_predictsequence="dataset2_no_ultrasonic_nok",  # use this file to predict on a second timeseries
-    my_nok_startsec=12529,  # startpoint for second timeseries
-    my_nok_stopsec=12570,  # endpoint for second timeseries
+    my_nok_startsec=6385,  # startpoint for second timeseries
+    my_nok_stopsec=6453,  # endpoint for second timeseries
     my_traintime='',
     my_ostype='',
     my_cudaversion='',
@@ -204,7 +204,7 @@ try:
     # plot original nok time series
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=nok_myfresh_x, y=nok_myfresh_y[:, 0], mode='lines', name='audio data points'))
-    fig.update_layout(title='Audio spectrum with NOK anomalies - ' + timetag, xaxis_title='Time',
+    fig.update_layout(title='Audio spectrum with NOK anomalies - '+model_parameters["my_predictsequence"] + " - "+ timetag, xaxis_title='Time',
                       yaxis_title='Audio spectrum', showlegend=True)
     #fig.write_html(out_dir + timetag + "_predictedSRC_"+timestr+".html")
     fig.show()
@@ -213,7 +213,7 @@ try:
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=nok_myfresh_x, y=nok_myfresh_y[:, 0], mode='lines', name='audio data points'))
     fig.add_trace(go.Scatter(x=nok_myotherfresh_x, y=nok_myotherfresh_y[:, 0], mode='markers', name='Anomaly'))
-    fig.update_layout(title='Audio spectrum with NOK anomalies - ' + timetag, xaxis_title='Time',
+    fig.update_layout(title='Audio spectrum with NOK anomalies - '+model_parameters["my_predictsequence"]+' - ' + timetag, xaxis_title='Time',
                       yaxis_title='Audio spectrum', showlegend=True)
     fig.write_html(out_dir + timetag + "_predictedNOK_"+timestr+".html")
     fig.show()
