@@ -14,7 +14,7 @@ import time
 import timeit
 import json
 import scipy.signal as sps
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import StandardScaler, MinMaxScaler
 import keras as kr
 # from tensorflow.keras.models import Sequential
 from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
@@ -23,7 +23,7 @@ from Notification_module import *
 os.environ["KERAS_BACKEND"] = "tensorflow"
 warnings.filterwarnings('ignore')
 # program control flags
-USE_CUDA = False  # use CPU or Nvidia GPU
+USE_CUDA = True  # use CPU or Nvidia GPU
 USE_DEBUGPRINT = True  # Add additional debug flags
 USE_FFT = False  # tbd
 USE_ANOTHERTESTFILE = True  # use prediction model on another NOK time series file
@@ -183,11 +183,10 @@ def create_sequences(x_sequence, y, time_steps=1):
         v = x_sequence.iloc[i:(i + time_steps)].values
         xs.append(v)
         ys.append(y.iloc[i + time_steps])
-    # TODO: apply hamming window here,
-    # TODO: apply fft for sequence here
     return np.array(xs), np.array(ys)
 
-def comp_stft(in_arr,fs,return_onesided):
+def comp_stft(in_arr,fs,return_onesided,nperseg=None):
+
     in_arr = cp.array(in_arr.astype(np.float16))
     win = cp.hanning(in_arr.shape[0]).astype(cp.float32)
     in_arr = in_arr * win
@@ -198,25 +197,23 @@ def comp_stft(in_arr,fs,return_onesided):
     #     #boundary="zeros",
     #     #padded=True,
     # )
-    f, t, spectrogram = cusignal.spectrogram(in_arr,fs=fs, return_onesided=return_onesided)
+    f, t, spectrogram = cusignal.spectrogram(in_arr,fs=fs, return_onesided=return_onesided, nperseg=nperseg)
     # spect = cp.fft.rfft(in_arr)
     # spectrogram = cp.abs(spect)
     # f = cp.float16(f.get())  # cupy to numpy has to be explicit
     # t = cp.float16(t.get())
     # spectrogram = cp.float32(spectrogram.get())
-
-
     return f.get(), t.get(), spectrogram.get()
 
-def create_spectrogram(x_in, samplerate_in):
+def create_spectrogram(x_in, samplerate_in, nperseg=None):
     real_only = True
     if USE_CUDA:
         # CuSignal version, requires building cusignal.
         # y_arr, x_arr, spectrogram_arr = sps.spectrogram(x_in, samplerate_in, return_onesided=real_only)
 
-        y_arr, x_arr, spectrogram_arr = comp_stft(x_in, fs=samplerate_in, return_onesided=real_only)
+        y_arr, x_arr, spectrogram_arr = comp_stft(x_in, fs=samplerate_in, return_onesided=real_only,nperseg=nperseg)
     else:
-        y_arr, x_arr, spectrogram_arr = sps.spectrogram(x_in, fs=samplerate_in, return_onesided=real_only)
+        y_arr, x_arr, spectrogram_arr = sps.spectrogram(x_in, fs=samplerate_in, return_onesided=real_only, nperseg=nperseg)
     # returns arrays of stample frequency, array of time steps, spectrogram of x.
     # Last axis of spectrogram corresponds to array of times
     return y_arr, x_arr, spectrogram_arr
@@ -229,19 +226,22 @@ def create_spectrogram(x_in, samplerate_in):
 #                   yaxis_title='Audio spectrum', showlegend=True)
 # #fig.write_html(out_dir + timestr + "_my_nok_timeseries." + timestr_alternative + ".html")
 # fig.show()
-
+frequ_steps = None # int(348000//4)
 start_time = timeit.default_timer()
-spectrogram_frequency, spectrogram_time, spectrogram_map = create_spectrogram(df['close'], model_parameters['my_samplingfrequency'])
+spectrogram_frequency, spectrogram_time, spectrogram_map = create_spectrogram(df['close'], model_parameters['my_samplingfrequency'],nperseg=frequ_steps)
 print(timeit.default_timer() - start_time)
 
 print("plotting spectrogram")
-
+print("map shape:",spectrogram_map.shape)
+# scaler = MinMaxScaler(feature_range=(0, 10000))
+# scaler = scaler.fit(spectrogram_map)
+# spectrogram_map = scaler.transform(spectrogram_map)
 # Plot with plotly
 trace = [go.Heatmap(
-    x= spectrogram_time,
-    y= spectrogram_frequency,
-    z= spectrogram_map,
-    colorscale='Jet',
+    x = spectrogram_time,
+    y = spectrogram_frequency,
+    z = spectrogram_map,
+    colorscale ='Jet'
     )]
 layout = go.Layout(
     title = 'Spectrogram',
