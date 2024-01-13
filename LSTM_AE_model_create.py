@@ -36,15 +36,15 @@ model_parameters = dict(
     # Model variables are set here:
     Timestamp=timestr,  # timestring for identification
     # data preparation
-    my_learningsequence="dataset2_no_ultrasonic_nok", #visc6_ultrasonic_ok visc6_nosonic_ok
+    my_learningsequence="dataset2_ultrasonic_nok", #visc6_ultrasonic_ok visc6_nosonic_ok
     my_samplingfrequency=0,  # automatic detection ok
-    sequence_start=650,  #9190 start second in audio file for  subsequence analysis
-    sequence_stop=1000,  #9210 stop second in audio file for subsequence analysis
+    sequence_start=6361,  #9190 start second in audio file for  subsequence analysis
+    sequence_stop=6481,  #9210 stop second in audio file for subsequence analysis
     train_test_split=0.8,  # 80/20 split for training/testing set
-    time_steps=30,  # 30 size of sub-sequences for LSTM feeding
+    time_steps=100,  # 30 size of sub-sequences for LSTM feeding
     # model learining
-    my_epochs=12,  # 10  times when the entire dataset passed through the entire network
-    my_batch_size=32,  # 32  dimensions of time steps for 2d input pattern
+    my_epochs=200,  # 10  times when the entire dataset passed through the entire network
+    my_batch_size=64,  # 32  dimensions of time steps for 2d input pattern
     my_validation_split=0.2,  # 0.1
     # my_dropout=0.2, #  model-depending, not global. likely not useful for sequences
     # model quality criteria
@@ -55,12 +55,12 @@ model_parameters = dict(
     # early stop paramerers
     my_min_delta=0.0001,
     my_monitor='val_loss',
-    my_patience=3,  # number epochs to train without improvement. after 3 -> stop
+    my_patience=5,  # number epochs to train without improvement. after 3 -> stop
     my_mode='min',
     my_verbose=1,
-    my_predictsequence="dataset2_no_ultrasonic_nok",  # use this file to predict on a second timeseries
-    my_nok_startsec=6416,  # startpoint for second timeseries
-    my_nok_stopsec=6426,  # endpoint for second timeseries
+    my_predictsequence="dataset2_ultrasonic_nok",  # use this file to predict on a second timeseries
+    my_nok_startsec=12308,  # startpoint for second timeseries
+    my_nok_stopsec=12555,  # endpoint for second timeseries
     my_traintime='',
     my_ostype='',
     my_cudaversion='',
@@ -197,7 +197,7 @@ try:
     print("assembly model")
     # X = Sequential()
     # TODO: select model here
-    my_model = LSTM_AE_model_zeta2(X_train)
+    my_model = LSTM_AE_model_delta2(X_train)
     my_model.compile(loss=model_parameters['my_loss'], optimizer=model_parameters['my_optimizer'])
     my_model.summary()
 
