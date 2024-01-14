@@ -40,8 +40,8 @@ model_parameters = dict(
     # data preparation
     my_learningsequence="dataset2_ultrasonic_nok", #visc6_ultrasonic_ok visc6_nosonic_ok
     my_samplingfrequency=0,  # automatic detection ok
-    sequence_start=6461,  #9190 start second in audio file for  subsequence analysis
-    sequence_stop=6481,  #9210 stop second in audio file for subsequence analysis
+    sequence_start=50,  #9190 start second in audio file for  subsequence analysis
+    sequence_stop=100,  #9210 stop second in audio file for subsequence analysis
     train_test_split=0.8,  # 80/20 split for training/testing set
     time_steps=100,  # 30 size of sub-sequences for LSTM feeding
     # model learining
@@ -138,10 +138,10 @@ def read_flac_to_pandas(filename, start_sec=None, stop_sec=None):
     signal_length = full_signal.shape[0] / sampling_frequency  # signal length in seconds
     full_time = np.linspace(start=start_sec, stop=stop_sec, num=full_signal.shape[0], dtype=np.float32)
     if USE_DEBUGPRINT:
-        print(f"Opening file:{audiofile_path}")
-        print(f"sampling_frequency = {sampling_frequency}")
-        print(f"full_signal.shape = {full_signal.shape}")
-        print(f"full_time.shape = {full_time.shape}")
+        # print(f"Opening file:{audiofile_path}")
+        # print(f"sampling_frequency = {sampling_frequency}")
+        # print(f"full_signal.shape = {full_signal.shape}")
+        # print(f"full_time.shape = {full_time.shape}")
         print(f"full signal length  = {signal_length} [s]")
     dframe = pd.DataFrame({'date': pd.Series(full_time, dtype=np.float32),
                            'close': pd.Series(full_signal, dtype=np.float16)})
@@ -155,24 +155,24 @@ df = read_flac_to_pandas(filename=model_parameters["my_learningsequence"], start
 df.head()
 df.info()
 
-# plot original time series snippet
-fig = go.Figure()
-fig.add_trace(go.Scatter(x=df['date'], y=df['close'], mode='lines', name='close'))  # lines mode for lineplot
-fig.update_layout(title='source time series - ' + timestr, xaxis_title="Time", yaxis_title='audio samples',
-                  showlegend=True)
-fig.write_html(out_dir + timestr + "_plot_timeseries.html")
-# fig.show()
-
-# Task 3: Data Preprocessing
-# split data into train/test set
-train_size = int(len(df) * model_parameters['train_test_split'])
-test_size = len(df) - train_size
-train, test = df.iloc[0:train_size], df.iloc[train_size:]  # create index for train and test dataset
-print("train.shape,test.shape: ", train.shape, test.shape)
-scaler = StandardScaler()
-scaler = scaler.fit(train[['close']])
-train['close'] = scaler.transform(train[['close']])
-test['close'] = scaler.transform(test[['close']])
+# # plot original time series snippet
+# fig = go.Figure()
+# fig.add_trace(go.Scatter(x=df['date'], y=df['close'], mode='lines', name='close'))  # lines mode for lineplot
+# fig.update_layout(title='source time series - ' + timestr, xaxis_title="Time", yaxis_title='audio samples',
+#                   showlegend=True)
+# fig.write_html(out_dir + timestr + "_plot_timeseries.html")
+# # fig.show()
+#
+# # Task 3: Data Preprocessing
+# # split data into train/test set
+# train_size = int(len(df) * model_parameters['train_test_split'])
+# test_size = len(df) - train_size
+# train, test = df.iloc[0:train_size], df.iloc[train_size:]  # create index for train and test dataset
+# print("train.shape,test.shape: ", train.shape, test.shape)
+# scaler = StandardScaler()
+# scaler = scaler.fit(train[['close']])
+# train['close'] = scaler.transform(train[['close']])
+# test['close'] = scaler.transform(test[['close']])
 
 
 # Task 4: Create Training and Test Splits
@@ -197,7 +197,12 @@ def comp_stft(in_arr,fs,return_onesided,nperseg=None):
     #     #boundary="zeros",
     #     #padded=True,
     # )
-    f, t, spectrogram = cusignal.spectrogram(in_arr,fs=fs, return_onesided=return_onesided, nperseg=nperseg)
+    f, t, spectrogram = cusignal.spectrogram(in_arr,
+                                             fs=fs,
+                                             return_onesided=return_onesided,
+                                             nperseg=nperseg,
+                                             mode="magnitude"
+                                             )
     # spect = cp.fft.rfft(in_arr)
     # spectrogram = cp.abs(spect)
     # f = cp.float16(f.get())  # cupy to numpy has to be explicit
@@ -205,18 +210,23 @@ def comp_stft(in_arr,fs,return_onesided,nperseg=None):
     # spectrogram = cp.float32(spectrogram.get())
     return f.get(), t.get(), spectrogram.get()
 
-def create_spectrogram(x_in, samplerate_in, nperseg=None):
+def create_spectrogram(x_in, x_ticks, samplerate_in):
     real_only = True
+    nperseg =   4096 #samplerate_in/x_in.shape[0]
+
     if USE_CUDA:
         # CuSignal version, requires building cusignal.
         # y_arr, x_arr, spectrogram_arr = sps.spectrogram(x_in, samplerate_in, return_onesided=real_only)
 
         y_arr, x_arr, spectrogram_arr = comp_stft(x_in, fs=samplerate_in, return_onesided=real_only,nperseg=nperseg)
     else:
+        #y_arr, x_arr, spectrogram_arr = sps.spectrogram(x_in, fs=samplerate_in, return_onesided=real_only, nperseg=nperseg)
         y_arr, x_arr, spectrogram_arr = sps.spectrogram(x_in, fs=samplerate_in, return_onesided=real_only, nperseg=nperseg)
+
+
     # returns arrays of stample frequency, array of time steps, spectrogram of x.
     # Last axis of spectrogram corresponds to array of times
-    return y_arr, x_arr, spectrogram_arr
+    return y_arr, x_ticks, spectrogram_arr
 
 
 # print("plotting normal")
@@ -226,16 +236,15 @@ def create_spectrogram(x_in, samplerate_in, nperseg=None):
 #                   yaxis_title='Audio spectrum', showlegend=True)
 # #fig.write_html(out_dir + timestr + "_my_nok_timeseries." + timestr_alternative + ".html")
 # fig.show()
-frequ_steps = None # int(348000//4)
 start_time = timeit.default_timer()
-spectrogram_frequency, spectrogram_time, spectrogram_map = create_spectrogram(df['close'], model_parameters['my_samplingfrequency'],nperseg=frequ_steps)
+spectrogram_frequency, spectrogram_time, spectrogram_map = create_spectrogram(df['close'],df['date'], model_parameters['my_samplingfrequency'])
 print(timeit.default_timer() - start_time)
 
 print("plotting spectrogram")
 print("map shape:",spectrogram_map.shape)
-# scaler = MinMaxScaler(feature_range=(0, 10000))
-# scaler = scaler.fit(spectrogram_map)
-# spectrogram_map = scaler.transform(spectrogram_map)
+scaler = MinMaxScaler(feature_range=(0, 1))
+scaler = scaler.fit(spectrogram_map)
+spectrogram_map = scaler.transform(spectrogram_map)
 # Plot with plotly
 trace = [go.Heatmap(
     x = spectrogram_time,
@@ -247,8 +256,13 @@ layout = go.Layout(
     title = 'Spectrogram',
     yaxis = dict(title = 'Frequency'), # x-axis label
     xaxis = dict(title = 'Time'), # y-axis label
+    #yaxis_type="log"
     )
 fig = go.Figure(data=trace, layout=layout)
+#fig.update_yaxes(title_text="Frequency in logarithmic scale", type="log")
+
+#fig.write_html(out_dir + "00_spectrogram_"+timestr+".html")
+fig.write_image(out_dir + "00_spectrogram_"+timestr+".png")
 fig.show()
 
 print("EOF")
