@@ -31,7 +31,7 @@ model_file_path = filedialog.askopenfilename()
 print("Using .keras model file:", model_file_path)
 
 # program control flags
-USE_CUDA = False
+USE_CUDA = True
 USE_DEBUGPRINT = True
 USE_STARTSCRIPT = False
 USE_FFT = True # get spectrogram plot
