@@ -211,8 +211,10 @@ def comp_stft(in_arr,fs,return_onesided,nperseg=None):
     return f.get(), t.get(), spectrogram.get()
 
 def create_spectrogram(x_in, x_ticks, samplerate_in):
+    # spectogram parameters. adjust to improve plot quality
     real_only = True
-    nperseg =   int(256*4) #samplerate_in/x_in.shape[0]
+    nperseg = int(256*16)  # samplerate_in//x_in.shape[0]  #  frequency resolution TODO: make adaptive on len(x_in)
+    print("frequency/time resolution:",nperseg)
     ticks_offset = x_ticks[0]
     if USE_CUDA:
         # CuSignal version, requires building cusignal.
