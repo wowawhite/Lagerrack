@@ -41,7 +41,7 @@ model_parameters = dict(
     my_learningsequence="dataset2_ultrasonic_nok", #visc6_ultrasonic_ok visc6_nosonic_ok
     my_samplingfrequency=0,  # automatic detection ok
     sequence_start=50,  #9190 start second in audio file for  subsequence analysis
-    sequence_stop=100,  #9210 stop second in audio file for subsequence analysis
+    sequence_stop=60,  #9210 stop second in audio file for subsequence analysis
     train_test_split=0.8,  # 80/20 split for training/testing set
     time_steps=100,  # 30 size of sub-sequences for LSTM feeding
     # model learining
@@ -188,7 +188,7 @@ def create_sequences(x_sequence, y, time_steps=1):
 def comp_stft(in_arr,fs,return_onesided,nperseg=None):
 
     in_arr = cp.array(in_arr.astype(np.float16))
-    win = cp.hanning(in_arr.shape[0]).astype(cp.float32)
+    win = cp.hanning(in_arr.shape[0]).astype(cp.float16)
     in_arr = in_arr * win
     # f, t, spectrogram = cp.fft.rfft(
     #     in_arr,
@@ -212,8 +212,8 @@ def comp_stft(in_arr,fs,return_onesided,nperseg=None):
 
 def create_spectrogram(x_in, x_ticks, samplerate_in):
     real_only = True
-    nperseg =   4096 #samplerate_in/x_in.shape[0]
-
+    nperseg =   int(256*4) #samplerate_in/x_in.shape[0]
+    ticks_offset = x_ticks[0]
     if USE_CUDA:
         # CuSignal version, requires building cusignal.
         # y_arr, x_arr, spectrogram_arr = sps.spectrogram(x_in, samplerate_in, return_onesided=real_only)
@@ -226,7 +226,7 @@ def create_spectrogram(x_in, x_ticks, samplerate_in):
 
     # returns arrays of stample frequency, array of time steps, spectrogram of x.
     # Last axis of spectrogram corresponds to array of times
-    return y_arr, x_ticks, spectrogram_arr
+    return y_arr, x_arr+ticks_offset, spectrogram_arr
 
 
 # print("plotting normal")
@@ -242,6 +242,7 @@ print(timeit.default_timer() - start_time)
 
 print("plotting spectrogram")
 print("map shape:",spectrogram_map.shape)
+print("date shape:",df.shape)
 scaler = MinMaxScaler(feature_range=(0, 1))
 scaler = scaler.fit(spectrogram_map)
 spectrogram_map = scaler.transform(spectrogram_map)
