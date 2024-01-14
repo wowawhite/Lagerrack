@@ -12,7 +12,8 @@ from platform import node
 import time
 import timeit
 import json
-from sklearn.preprocessing import StandardScaler
+import scipy.signal as sps
+from sklearn.preprocessing import StandardScaler, MinMaxScaler
 import keras as kr
 # from tensorflow.keras.models import Sequential
 from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
@@ -23,7 +24,7 @@ warnings.filterwarnings('ignore')
 # program control flags
 USE_CUDA = True  # use CPU or Nvidia GPU
 USE_DEBUGPRINT = True  # Add additional debug flags
-USE_FFT = False  # tbd
+USE_FFT = True  # get spectrogram plot
 USE_ANOTHERTESTFILE = True  # use prediction model on another NOK time series file
 parent_dir = Path(__file__).resolve().parent
 out_dir = str(Path.joinpath(parent_dir, "output")) + os.sep
@@ -85,7 +86,8 @@ tf.random.set_seed(1)
 if USE_CUDA:
     print("Enable CUDA Support")
     import cupy as cp  # install pip cupy-cuda12x
-
+    import cupyx.scipy as cps
+    import cusignal
     feedback_cuda = cp.cuda.runtime.driverGetVersion()
     gpu_devices = tf.config.experimental.list_physical_devices('GPU')
     for device in gpu_devices:
@@ -301,9 +303,9 @@ try:
     model_parameters['my_trainingsuccess'] = True
     save_training_parameters(model_parameters)
     print(f"Runtime: {runtime_time}")
-
+    timestr_alternative = time.strftime("%Y%m%d-%H%M%S")
     if USE_ANOTHERTESTFILE:
-        timestr_alternative = time.strftime("%Y%m%d-%H%M%S")
+
         nok_sequence = read_flac_to_pandas(filename=model_parameters["my_predictsequence"], start_sec=model_parameters['my_nok_startsec'],
                                            stop_sec=model_parameters['my_nok_stopsec'])
         print("predicting anomaly in NOK sequence")
@@ -356,6 +358,88 @@ try:
         fig.update_layout(title='Audio spectrum with NOK anomalies - ' + timestr, xaxis_title='Time',
                           yaxis_title='Audio spectrum', showlegend=True)
         fig.write_html(out_dir + timestr + "_predictedNOK_" + timestr_alternative + ".html")
+        fig.show()
+    if USE_FFT:
+        def comp_stft(in_arr, fs, return_onesided, nperseg=None):
+
+            in_arr = cp.array(in_arr.astype(np.float16))
+            win = cp.hanning(in_arr.shape[0]).astype(cp.float16)
+            in_arr = in_arr * win
+            # f, t, spectrogram = cp.fft.rfft(
+            #     in_arr,
+            #     fs=fs,
+            #     return_onesided=return_onesided,
+            #     #boundary="zeros",
+            #     #padded=True,
+            # )
+            f, t, spectrogram = cusignal.spectrogram(in_arr,
+                                                     fs=fs,
+                                                     return_onesided=return_onesided,
+                                                     nperseg=nperseg,
+                                                     mode="magnitude"
+                                                     )
+            # spect = cp.fft.rfft(in_arr)
+            # spectrogram = cp.abs(spect)
+            # f = cp.float16(f.get())  # cupy to numpy has to be explicit
+            # t = cp.float16(t.get())
+            # spectrogram = cp.float32(spectrogram.get())
+            return f.get(), t.get(), spectrogram.get()
+
+
+        def create_spectrogram(x_in, x_ticks, samplerate_in):
+            # spectogram parameters. adjust to improve plot quality
+            real_only = True
+            nperseg = int(
+                256 * 16)  # samplerate_in//x_in.shape[0]  #  frequency resolution TODO: make adaptive on len(x_in)
+            print("frequency/time resolution:", nperseg)
+            ticks_offset = x_ticks[0]
+            if USE_CUDA:
+                # CuSignal version, requires building cusignal.
+                # y_arr, x_arr, spectrogram_arr = sps.spectrogram(x_in, samplerate_in, return_onesided=real_only)
+
+                y_arr, x_arr, spectrogram_arr = comp_stft(x_in, fs=samplerate_in, return_onesided=real_only,
+                                                          nperseg=nperseg)
+            else:
+                # y_arr, x_arr, spectrogram_arr = sps.spectrogram(x_in, fs=samplerate_in, return_onesided=real_only, nperseg=nperseg)
+                y_arr, x_arr, spectrogram_arr = sps.spectrogram(x_in, fs=samplerate_in, return_onesided=real_only,
+                                                                nperseg=nperseg)
+
+            # returns arrays of stample frequency, array of time steps, spectrogram of x.
+            # Last axis of spectrogram corresponds to array of times
+            return y_arr, x_arr + ticks_offset, spectrogram_arr
+
+        start_time = timeit.default_timer()
+        spectrogram_frequency, spectrogram_time, spectrogram_map = create_spectrogram(df['close'], df['date'],
+                                                                                      model_parameters[
+                                                                                          'my_samplingfrequency'])
+        print(timeit.default_timer() - start_time)
+
+        print("plotting spectrogram")
+        print("map shape:", spectrogram_map.shape)
+        print("date shape:", df.shape)
+        scaler = MinMaxScaler(feature_range=(0, 1))
+        scaler = scaler.fit(spectrogram_map)
+        spectrogram_map = scaler.transform(spectrogram_map)
+        # Plot with plotly
+        trace = [go.Heatmap(
+            x=spectrogram_time,
+            y=spectrogram_frequency,
+            z=spectrogram_map,
+            colorscale='Jet'
+        )]
+        layout = go.Layout(
+            title='Spectrogram',
+            yaxis=dict(title='Frequency'),  # x-axis label
+            xaxis=dict(title='Time'),  # y-axis label
+            # yaxis_type="log"
+        )
+        fig = go.Figure(data=trace, layout=layout)
+        # fig.update_yaxes(title_text="Frequency in logarithmic scale", type="log")
+
+        # fig.write_html(out_dir + "00_spectrogram_"+timestr+".html")
+        fig.update_layout(title='Spectrogram - ' + timestr, showlegend=True)
+        fig.write_image(out_dir + timestr + "_spectrogram_" + timestr_alternative + ".png")
+
         fig.show()
 
 except Exception as error:
