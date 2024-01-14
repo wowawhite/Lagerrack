@@ -12,9 +12,10 @@ import plotly.graph_objects as go
 import sys
 import tensorflow as tf
 from pathlib import Path
+import scipy.signal as sps
 import platform
 import time
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import StandardScaler, MinMaxScaler
 import tkinter as tk
 from tkinter import filedialog
 import keras as kr
@@ -30,10 +31,10 @@ model_file_path = filedialog.askopenfilename()
 print("Using .keras model file:", model_file_path)
 
 # program control flags
-USE_CUDA = True
+USE_CUDA = False
 USE_DEBUGPRINT = True
 USE_STARTSCRIPT = False
-USE_FFT = False
+USE_FFT = True # get spectrogram plot
 parent_dir = Path(__file__).resolve().parent
 out_dir = str(Path.joinpath((parent_dir),"output"))+os.sep
 
@@ -44,10 +45,10 @@ model_parameters = dict(
     # data preparation
     my_learningsequence="dataset2_no_ultrasonic_nok", #visc6_ultrasonic_ok visc6_nosonic_ok
     my_samplingfrequency=0,  # automatic detection ok
-    sequence_start=6302,  #9190 start second in audio file for  subsequence analysis
-    sequence_stop=6622,  #9210 stop second in audio file for subsequence analysis
+    sequence_start=300,  #9190 start second in audio file for  subsequence analysis
+    sequence_stop=302,  #9210 stop second in audio file for subsequence analysis
     train_test_split=0.8,  # 80/20 split for training/testing set
-    time_steps=100,  # 30 size of sub-sequences for LSTM feeding
+    time_steps=30,  # 30 size of sub-sequences for LSTM feeding
     # model learining
     my_epochs=200,  # 10  times when the entire dataset passed through the entire network
     my_batch_size=64,  # 32  dimensions of time steps for 2d input pattern
@@ -64,9 +65,9 @@ model_parameters = dict(
     my_patience=5,  # number epochs to train without improvement. after 3 -> stop
     my_mode='min',
     my_verbose=1,
-    my_predictsequence="dataset2_no_ultrasonic_nok",  # use this file to predict on a second timeseries
-    my_nok_startsec=6385,  # startpoint for second timeseries
-    my_nok_stopsec=6453,  # endpoint for second timeseries
+    my_predictsequence="dataset2_ultrasonic_nok",  # use this file to predict on a second timeseries
+    my_nok_startsec=300,  # startpoint for second timeseries
+    my_nok_stopsec=302,  # endpoint for second timeseries
     my_traintime='',
     my_ostype='',
     my_cudaversion='',
@@ -97,15 +98,24 @@ tf.random.set_seed(1)
 if USE_CUDA:
     print("Enable CUDA Support")
     import cupy as cp  # install pip cupy-cuda12x
+    import cupyx.scipy as cps
+    import cusignal
     feedback_cuda = cp.cuda.runtime.driverGetVersion()
     gpu_devices = tf.config.experimental.list_physical_devices('GPU')
     for device in gpu_devices:
         tf.config.experimental.set_memory_growth(device, True)
+        if(not(gpu_devices)):
+            feedback_cuda = "Using CPU only"
+            USE_CUDA = False
+        else:
+            model_parameters['my_cudaversion'] = feedback_cuda
+
     print(f"CUDA driver version is {feedback_cuda}")
-    print("Cuda devices available:",tf.config.list_physical_devices('GPU'))
+    print("Cuda devices available:", tf.config.list_physical_devices('GPU'))
 else:
     print(f"Using CPU only")
     os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
+    feedback_cuda="Using CPU only"
 print('Tensorflow version:', tf.__version__)
 
 # get parent path
@@ -204,7 +214,7 @@ try:
     # plot original nok time series
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=nok_myfresh_x, y=nok_myfresh_y[:, 0], mode='lines', name='audio data points'))
-    fig.update_layout(title='Audio spectrum with NOK anomalies - '+model_parameters["my_predictsequence"] + " - "+ timetag, xaxis_title='Time',
+    fig.update_layout(title='Audio spectrum with NOK anomalies - ' + timetag, xaxis_title='Time',
                       yaxis_title='Audio spectrum', showlegend=True)
     #fig.write_html(out_dir + timetag + "_predictedSRC_"+timestr+".html")
     fig.show()
@@ -213,10 +223,94 @@ try:
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=nok_myfresh_x, y=nok_myfresh_y[:, 0], mode='lines', name='audio data points'))
     fig.add_trace(go.Scatter(x=nok_myotherfresh_x, y=nok_myotherfresh_y[:, 0], mode='markers', name='Anomaly'))
-    fig.update_layout(title='Audio spectrum with NOK anomalies - '+model_parameters["my_predictsequence"]+' - ' + timetag, xaxis_title='Time',
+    fig.update_layout(title='Audio spectrum with NOK anomalies - ' + timetag, xaxis_title='Time',
                       yaxis_title='Audio spectrum', showlegend=True)
     fig.write_html(out_dir + timetag + "_predictedNOK_"+timestr+".html")
     fig.show()
+
+    if USE_FFT:
+        def comp_stft(in_arr, fs, return_onesided, nperseg=None):
+
+            in_arr = cp.array(in_arr.astype(np.float16))
+            win = cp.hanning(in_arr.shape[0]).astype(cp.float16)
+            in_arr = in_arr * win
+            # f, t, spectrogram = cp.fft.rfft(
+            #     in_arr,
+            #     fs=fs,
+            #     return_onesided=return_onesided,
+            #     #boundary="zeros",
+            #     #padded=True,
+            # )
+            f, t, spectrogram = cusignal.spectrogram(in_arr,
+                                                     fs=fs,
+                                                     return_onesided=return_onesided,
+                                                     nperseg=nperseg,
+                                                     mode="magnitude"
+                                                     )
+            # spect = cp.fft.rfft(in_arr)
+            # spectrogram = cp.abs(spect)
+            # f = cp.float16(f.get())  # cupy to numpy has to be explicit
+            # t = cp.float16(t.get())
+            # spectrogram = cp.float32(spectrogram.get())
+            return f.get(), t.get(), spectrogram.get()
+
+
+        def create_spectrogram(x_in, x_ticks, samplerate_in):
+            # spectogram parameters. adjust to improve plot quality
+            real_only = True
+            nperseg = int(
+                256 * 16)  # samplerate_in//x_in.shape[0]  #  frequency resolution TODO: make adaptive on len(x_in)
+            print("frequency/time resolution:", nperseg)
+            ticks_offset = x_ticks[0]
+            if USE_CUDA:
+                # CuSignal version, requires building cusignal.
+                # y_arr, x_arr, spectrogram_arr = sps.spectrogram(x_in, samplerate_in, return_onesided=real_only)
+
+                y_arr, x_arr, spectrogram_arr = comp_stft(x_in, fs=samplerate_in, return_onesided=real_only,
+                                                          nperseg=nperseg)
+            else:
+                # y_arr, x_arr, spectrogram_arr = sps.spectrogram(x_in, fs=samplerate_in, return_onesided=real_only, nperseg=nperseg)
+                y_arr, x_arr, spectrogram_arr = sps.spectrogram(x_in, fs=samplerate_in, return_onesided=real_only,
+                                                                nperseg=nperseg)
+
+            # returns arrays of stample frequency, array of time steps, spectrogram of x.
+            # Last axis of spectrogram corresponds to array of times
+            return y_arr, x_arr + ticks_offset, spectrogram_arr
+
+
+        spectrogram_frequency, spectrogram_time, spectrogram_map = create_spectrogram(nok_sequence['close'], nok_sequence['date'],
+                                                                                      model_parameters[
+                                                                                          'my_samplingfrequency'])
+
+
+        print("plotting spectrogram")
+        print("map shape:", spectrogram_map.shape)
+        print("date shape:", nok_sequence.shape)
+        scaler = MinMaxScaler(feature_range=(0, 1))
+        scaler = scaler.fit(spectrogram_map)
+        spectrogram_map = scaler.transform(spectrogram_map)
+        # Plot with plotly
+        trace = [go.Heatmap(
+            x=spectrogram_time,
+            y=spectrogram_frequency,
+            z=spectrogram_map,
+            colorscale='Jet'
+        )]
+        layout = go.Layout(
+            title='Spectrogram',
+            yaxis=dict(title='Frequency'),  # x-axis label
+            xaxis=dict(title='Time'),  # y-axis label
+            # yaxis_type="log"
+        )
+        fig = go.Figure(data=trace, layout=layout)
+        # fig.update_yaxes(title_text="Frequency in logarithmic scale", type="log")
+
+        # fig.write_html(out_dir + "00_spectrogram_"+timestr+".html")
+        fig.update_layout(title='Spectrogram - ' + timetag, showlegend=True)
+        fig.write_image(out_dir + timetag + "_spectrogram_" + timestr + ".png")
+
+        fig.show()
+
 except Exception as error:
     print("sending failed mail with following error:")
     print(error)
