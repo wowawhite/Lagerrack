@@ -13,7 +13,9 @@ import sys
 # Inputs, if use masking, are strictly right-padded.
 # Eager execution is enabled in the outermost context.
 
-def LSTM_AE_model_alpha1(model, inputs, hyperparameters=None):
+def LSTM_AE_model_alpha1(inputs, hyperparameters=None):
+    my_modelname = "alpha1"
+    model = Sequential(name=my_modelname)
     timesteps = inputs.shape[1]
     num_features = inputs.shape[2]
     model.add(LSTM(128,input_shape=(timesteps,num_features),name ="LSTM_AE_model_alpha1"))
@@ -24,7 +26,9 @@ def LSTM_AE_model_alpha1(model, inputs, hyperparameters=None):
     model.add(TimeDistributed(Dense(num_features)))
     return model
 
-def LSTM_AE_model_alpha2(model, inputs, hyperparameters=None):
+def LSTM_AE_model_alpha2(inputs, hyperparameters=None):
+    my_modelname = "alpha2"
+    model = Sequential(name=my_modelname)
     timesteps = inputs.shape[1]
     num_features = inputs.shape[2]
     model.add(Input(shape=(timesteps, num_features), name ="LSTM_AE_model_alpha2"))
@@ -35,7 +39,9 @@ def LSTM_AE_model_alpha2(model, inputs, hyperparameters=None):
     model.add(Dropout(0.2))
     model.add(TimeDistributed(Dense(num_features)))
     return model
-def LSTM_AE_model_alpha3(model, inputs, hyperparameters=None):
+def LSTM_AE_model_alpha3(inputs, hyperparameters=None):
+    my_modelname = "alpha3"
+    model = Sequential(name=my_modelname)
     timesteps = inputs.shape[1]
     num_features = inputs.shape[2]
     model.add(Input(shape=(timesteps, num_features), name ="LSTM_AE_model_alpha3"))
@@ -47,7 +53,9 @@ def LSTM_AE_model_alpha3(model, inputs, hyperparameters=None):
     model.add(TimeDistributed(Dense(num_features)))
     return model
 
-def LSTM_AE_model_alpha4(model, inputs, hyperparameters=None):
+def LSTM_AE_model_alpha4(inputs, hyperparameters=None):
+    my_modelname = "alpha4"
+    model = Sequential(name=my_modelname)
     timesteps = inputs.shape[1]
     num_features = inputs.shape[2]
     model.add(Input(shape=(timesteps, num_features), name ="LSTM_AE_model_alpha4"))
@@ -59,7 +67,9 @@ def LSTM_AE_model_alpha4(model, inputs, hyperparameters=None):
     model.add(TimeDistributed(Dense(num_features)))
     return model
 
-def LSTM_AE_model_alpha5(model, inputs, hyperparameters=None):
+def LSTM_AE_model_alpha5(inputs, hyperparameters=None):
+    my_modelname = "alpha5"
+    model = Sequential(name=my_modelname)
     timesteps = inputs.shape[1]
     num_features = inputs.shape[2]
     model.add(Input(shape=(timesteps, num_features), name ="LSTM_AE_model_alpha5"))
@@ -70,7 +80,9 @@ def LSTM_AE_model_alpha5(model, inputs, hyperparameters=None):
     return model
 
 # https://github.com/Jithsaavvy/Explaining-deep-learning-models-for-detecting-anomalies-in-time-series-data-RnD-project
-def LSTM_AE_model_beta1(model, inputs, hyperparameters=None):
+def LSTM_AE_model_beta1( inputs, hyperparameters=None):
+    my_modelname = "beta1"
+    model = Sequential(name=my_modelname)
     timesteps = inputs.shape[1]
     num_features = inputs.shape[2]
     model.add(Input(shape=(timesteps, num_features), name ="LSTM_AE_model_beta1"))
@@ -82,7 +94,9 @@ def LSTM_AE_model_beta1(model, inputs, hyperparameters=None):
     model.add(TimeDistributed(Dense(num_features)))
     return model
 
-def LSTM_AE_model_beta2(model, inputs, hyperparameters=None):
+def LSTM_AE_model_beta2(inputs, hyperparameters=None):
+    my_modelname = "beta2"
+    model = Sequential(name=my_modelname)
     timesteps = inputs.shape[1]
     num_features = inputs.shape[2]
     model.add(Input(shape=(timesteps, num_features), name ="LSTM_AE_model_beta2"))
@@ -94,7 +108,9 @@ def LSTM_AE_model_beta2(model, inputs, hyperparameters=None):
     model.add(TimeDistributed(Dense(num_features)))
     return model
 
-def LSTM_AE_model_beta3(model, inputs, hyperparameters=None):
+def LSTM_AE_model_beta3(inputs, hyperparameters=None):
+    my_modelname = "beta3"
+    model = Sequential(name=my_modelname)
     timesteps = inputs.shape[1]
     num_features = inputs.shape[2]
     model.add(Input(shape=(timesteps, num_features), name ="LSTM_AE_model_beta3"))
@@ -108,7 +124,9 @@ def LSTM_AE_model_beta3(model, inputs, hyperparameters=None):
 
 # https://www.kaggle.com/code/dimitreoliveira/time-series-forecasting-with-lstm-autoencoders
 # gamma models incomplete and need debugging
-def LSTM_AE_model_gamma1(model, inputs, hyperparameters=None):
+def LSTM_AE_model_gamma1(inputs, hyperparameters=None):
+    my_modelname = "gamma1"
+    model = Sequential(name=my_modelname)
     timesteps = inputs.shape[1]
     num_features = inputs.shape[2]
     # model.name ="LSTM_AE_model_gamma1"
@@ -121,7 +139,9 @@ def LSTM_AE_model_gamma1(model, inputs, hyperparameters=None):
     model.add(Dense(1))
     return model
 
-def LSTM_AE_model_gamma2(model, inputs, hyperparameters=None):
+def LSTM_AE_model_gamma2( inputs, hyperparameters=None):
+    my_modelname = "gamma2"
+    model = Sequential(name=my_modelname)
     timesteps = inputs.shape[1]
     num_features = inputs.shape[2]
     # model.name ="LSTM_AE_model_gamma1"
@@ -134,7 +154,9 @@ def LSTM_AE_model_gamma2(model, inputs, hyperparameters=None):
     model.add((Dense(1)))
     return model
 
-def LSTM_AE_model_gamma3(model, inputs, hyperparameters=None):
+def LSTM_AE_model_gamma3(inputs, hyperparameters=None):
+    my_modelname = "gamma3"
+    model = Sequential(name=my_modelname)
     timesteps = inputs.shape[1]
     num_features = inputs.shape[2]
     model.add(Input(shape=(timesteps, num_features), name ="LSTM_AE_model_gamma3"))
@@ -147,7 +169,9 @@ def LSTM_AE_model_gamma3(model, inputs, hyperparameters=None):
     return model
 # https://github.com/thomashuang02/LSTM-Autoencoder-for-Time-Series-Anomaly-Detection/blob/main/lstm_autoencoder.ipynb
 # Delta model promising.
-def LSTM_AE_model_delta1(model, inputs, hyperparameters=None):
+def LSTM_AE_model_delta1( inputs, hyperparameters=None):
+    my_modelname = "delta1"
+    model = Sequential(name=my_modelname)
     # encoder stuff: input (None, 4, feats), output (None, 16)
     timesteps = inputs.shape[1]
     num_features = inputs.shape[2]
@@ -166,7 +190,6 @@ def LSTM_AE_model_delta1(model, inputs, hyperparameters=None):
     return model
 
 def LSTM_AE_model_delta2(inputs, hyperparameters=None):
-    # TODO: https://stackoverflow.com/questions/62728083/change-the-model-name-given-automatically-by-keras-in-model-summary-output/62728323#62728323
     my_modelname = "delta2"
     model= Sequential(name=my_modelname)
     # encoder stuff: input (None, 4, feats), output (None, 16)
