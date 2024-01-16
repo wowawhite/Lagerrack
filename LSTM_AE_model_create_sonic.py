@@ -39,8 +39,8 @@ model_parameters = dict(
     # data preparation
     my_learningsequence="dataset2_ultrasonic_nok", #visc6_ultrasonic_ok visc6_nosonic_ok
     my_samplingfrequency=0,  # automatic detection ok
-    sequence_start=6361,  #9190 start second in audio file for  subsequence analysis
-    sequence_stop=6481,  #9210 stop second in audio file for subsequence analysis
+    sequence_start=6433,  #9190 start second in audio file for  subsequence analysis
+    sequence_stop=6500,  #9210 stop second in audio file for subsequence analysis
     train_test_split=0.8,  # 80/20 split for training/testing set
     time_steps=100,  # 30 size of sub-sequences for LSTM feeding
     # model learining
@@ -60,8 +60,8 @@ model_parameters = dict(
     my_mode='min',
     my_verbose=1,
     my_predictsequence="dataset2_ultrasonic_nok",  # use this file to predict on a second timeseries
-    my_nok_startsec=12308,  # startpoint for second timeseries
-    my_nok_stopsec=12555,  # endpoint for second timeseries
+    my_nok_startsec=12486,  # startpoint for second timeseries
+    my_nok_stopsec=12550,  # endpoint for second timeseries
     my_traintime='',
     my_ostype='',
     my_cudaversion='',
