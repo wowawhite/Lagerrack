@@ -131,6 +131,8 @@ def read_flac_to_pandas(filename, start_sec=None, stop_sec=None):
                 work_dir = "//mnt/Windows_data//wk_messungen//"
             elif MACHINE_ID == "wowa-backend":
                 work_dir = "//mnt//datadrive//wk_messungen//"
+            elif MACHINE_ID == "wowa-laptop-linux":
+                work_dir = "//home//wowa//Schreibtisch//MA//dataset2_ai//"
 
         case _:
             work_dir = "//media//wowa//Windows Data//wk_messungen//"
